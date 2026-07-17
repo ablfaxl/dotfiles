@@ -1,0 +1,21 @@
+# Core CLI — Debian/Ubuntu apt
+# (Arch users: map names to pacman equivalents)
+
+zsh
+fzf
+fd-find
+ripgrep
+bat
+eza
+tree
+jq
+htop
+wget
+curl
+gnupg
+neovim
+tmux
+git
+gh
+unzip
+build-essential

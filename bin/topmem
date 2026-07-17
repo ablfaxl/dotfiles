@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Top memory consumers (portable-ish)
+
+set -euo pipefail
+
+if [[ "${1:-}" = "-w" ]]; then
+  watch -t -n 1 "$0"
+  exit 0
+fi
+
+printf '╔════════╦════════════════════════╦══════════╦═════════════════╗\n'
+printf '║ PID    ║ Process                ║  CPU (%%) ║     Memory (MB) ║\n'
+printf '╠════════╬════════════════════════╬══════════╬═════════════════╣\n'
+
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  ps -axo pid=,comm=,pcpu=,rss= -r | head -n 10 | awk '{
+    printf "║ %-6s ║ %-22s ║ %7.1f%% ║ %12.2f MB ║\n", $1, $2, $3, $4/1024
+  }'
+else
+  ps -eo pid:7,comm:24,pcpu,rss --sort=-rss | awk 'NR>1 {
+    printf "║ %-6s ║ %-22s ║ %7.1f%% ║ %12.2f MB ║\n", $1, $2, $3, $4/1024
+  }' | head -n 10
+fi
+
+printf '╚════════╩════════════════════════╩══════════╩═════════════════╝\n'

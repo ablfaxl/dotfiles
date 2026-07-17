@@ -1,0 +1,10 @@
+# npm XDG-friendly config (paths resolve via env at runtime)
+# cache/dir are set relative via NPM_CONFIG_USERCONFIG + XDG
+
+sign-git-tag=false
+color=always
+depth=0
+init-version=0.0.0
+save=true
+fund=false
+update-notifier=false

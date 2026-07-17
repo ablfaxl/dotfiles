@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Fuzzy-pick a file in the current (or given) directory
+
+set -euo pipefail
+
+BASE_DIR="${1:-.}"
+shift || true
+
+if ! command -v fd >/dev/null 2>&1 || ! command -v fzf >/dev/null 2>&1; then
+  echo "ffd requires fd and fzf" >&2
+  exit 127
+fi
+
+fd --max-depth 1 --hidden --type f --base-directory "$BASE_DIR" "$@" \
+  | fzf --preview "less '$BASE_DIR'/{} 2>/dev/null || cat '$BASE_DIR'/{}"

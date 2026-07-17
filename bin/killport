@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Kill the process listening on a TCP port (macOS & Linux)
+
+set -euo pipefail
+
+if (($# == 0)); then
+  echo "Usage: killport [-9] <port>" >&2
+  exit 2
+fi
+
+args=("$@")
+PORT="${args[-1]}"
+kill_args=("${args[@]:0:${#args[@]}-1}")
+
+if ! [[ "$PORT" =~ ^[0-9]+$ ]]; then
+  echo "Invalid port: $PORT" >&2
+  exit 1
+fi
+
+pids=()
+if command -v lsof >/dev/null 2>&1; then
+  while IFS= read -r pid; do
+    [[ -n "$pid" ]] && pids+=("$pid")
+  done < <(lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null || true)
+fi
+
+if ((${#pids[@]} == 0)); then
+  echo "No process found on port \"$PORT\""
+  exit 0
+fi
+
+for pid in "${pids[@]}"; do
+  name="$(ps -p "$pid" -o comm= 2>/dev/null || echo unknown)"
+  echo "Killing \"$name\" (pid $pid) on port \"$PORT\""
+  kill "${kill_args[@]}" "$pid"
+done

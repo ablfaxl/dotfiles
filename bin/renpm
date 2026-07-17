@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Remove node_modules + lockfiles (with confirm)
+
+set -euo pipefail
+
+force=false
+if [[ "${1:-}" == "--force" || "${1:-}" == "-f" ]]; then
+  force=true
+fi
+
+if [[ "$force" != true ]]; then
+  printf 'Remove node_modules and lockfiles in %s? [y/N] ' "$(pwd)" >&2
+  read -r answer
+  [[ "$answer" =~ ^[Yy]$|^[Yy][Ee][Ss]$ ]] || exit 1
+fi
+
+rm -rf node_modules
+rm -f package-lock.json yarn.lock pnpm-lock.yaml bun.lock bun.lockb
+echo "cleaned."

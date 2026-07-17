@@ -1,0 +1,7 @@
+# Optional GUI apps (Homebrew casks)
+# Uncomment what you want, or install later:
+#   brew install --cask alacritty
+#   brew install --cask font-jetbrains-mono-nerd-font
+
+alacritty
+font-jetbrains-mono-nerd-font

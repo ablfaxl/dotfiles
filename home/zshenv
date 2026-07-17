@@ -1,0 +1,4 @@
+# Loaded for every zsh (login + interactive + scripts).
+# Keep this tiny — only bootstrap XDG / ZDOTDIR.
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export ZDOTDIR="${ZDOTDIR:-$XDG_CONFIG_HOME/zsh}"

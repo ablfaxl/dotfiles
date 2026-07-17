@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Print local IPv4 address (macOS & Linux)
+
+set -euo pipefail
+
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  # Prefer active Wi-Fi / Ethernet service
+  for iface in en0 en1 en2; do
+    ip="$(ipconfig getifaddr "$iface" 2>/dev/null || true)"
+    if [[ -n "$ip" ]]; then
+      echo "$ip"
+      exit 0
+    fi
+  done
+  ifconfig | awk '/inet / && $2 != "127.0.0.1" { print $2; exit }'
+  exit 0
+fi
+
+# Linux
+if [[ -n "${WIFI_ADAPTOR:-}" ]] && command -v ip >/dev/null 2>&1; then
+  ip -4 addr show "$WIFI_ADAPTOR" | awk '/inet / { print $2 }' | cut -d/ -f1
+  exit 0
+fi
+
+if command -v hostname >/dev/null 2>&1; then
+  hostname -I 2>/dev/null | awk '{print $1}' && exit 0
+fi
+
+ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}'

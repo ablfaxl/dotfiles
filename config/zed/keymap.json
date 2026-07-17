@@ -1,0 +1,8 @@
+[
+  {
+    "context": "Editor",
+    "bindings": {
+      "ctrl-b": ["editor::SelectNext", { "replace_newest": false }]
+    }
+  }
+]

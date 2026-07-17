@@ -1,0 +1,3 @@
+#!/bin/sh
+# Thin login bootstrap — loads XDG env for every login shell.
+. "${XDG_CONFIG_HOME:-$HOME/.config}/env"

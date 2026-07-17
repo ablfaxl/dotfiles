@@ -1,0 +1,105 @@
+#!/bin/sh
+# Cross-platform environment (macOS + Linux)
+# Sourced from ~/.zprofile and zsh .zprofile
+
+# ── Editors / terminal ──────────────────────────────────────────────
+export VISUAL="${VISUAL:-nvim}"
+export EDITOR="${EDITOR:-$VISUAL}"
+export SUDO_EDITOR="$EDITOR"
+export TERM="${TERM:-xterm-256color}"
+export TERMINAL="${TERMINAL:-alacritty}"
+
+# ── Locale ──────────────────────────────────────────────────────────
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+export LANG="${LANG:-en_US.UTF-8}"
+
+# ── XDG base dirs ───────────────────────────────────────────────────
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+
+# Runtime dir: Linux uses /run/user/$UID; macOS has no standard equivalent
+if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
+  if [ -d "/run/user/$(id -u)" ]; then
+    export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+  else
+    export XDG_RUNTIME_DIR="${TMPDIR:-/tmp}/xdg-runtime-$(id -u)"
+    mkdir -p "$XDG_RUNTIME_DIR"
+    chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
+  fi
+fi
+
+# ── Dotfile cleanup (move clutter out of $HOME) ─────────────────────
+export ZDOTDIR="${XDG_CONFIG_HOME}/zsh"
+export LESSHISTFILE="/dev/null"
+export WGETRC="${XDG_CONFIG_HOME}/wget/wgetrc"
+export INPUTRC="${XDG_CONFIG_HOME}/inputrc"
+export GNUPGHOME="${XDG_DATA_HOME}/gnupg"
+export CARGO_HOME="${XDG_DATA_HOME}/cargo"
+export RUSTUP_HOME="${XDG_DATA_HOME}/rustup"
+export GOPATH="${XDG_DATA_HOME}/go"
+export HISTFILE="${XDG_DATA_HOME}/history"
+export NODE_REPL_HISTORY="${XDG_CACHE_HOME}/node_repl_history"
+export NPM_CONFIG_USERCONFIG="${XDG_CONFIG_HOME}/npm/npmrc"
+export DOCKER_CONFIG="${XDG_CONFIG_HOME}/docker"
+export GRADLE_USER_HOME="${XDG_DATA_HOME}/gradle"
+export PYTHONPYCACHEPREFIX="${XDG_CACHE_HOME}/python"
+export PYTHONUSERBASE="${XDG_DATA_HOME}/python"
+export AWS_SHARED_CREDENTIALS_FILE="${XDG_CONFIG_HOME}/aws/credentials"
+export AWS_CONFIG_FILE="${XDG_CONFIG_HOME}/aws/config"
+export RIPGREP_CONFIG_PATH="${XDG_CONFIG_HOME}/ripgrep/config"
+export CLAUDE_CONFIG_DIR="${XDG_CONFIG_HOME}/claude"
+
+# ── GPG / SSH agent (optional) ──────────────────────────────────────
+export GPG_TTY="$(tty 2>/dev/null || true)"
+if command -v gpgconf >/dev/null 2>&1; then
+  _gpg_sock="$(gpgconf --list-dirs agent-ssh-socket 2>/dev/null || true)"
+  [ -n "$_gpg_sock" ] && export SSH_AUTH_SOCK="$_gpg_sock"
+  unset _gpg_sock
+fi
+
+# ── Tooling prefs ───────────────────────────────────────────────────
+export FZF_DEFAULT_OPTS="--layout=reverse --height 40% --border"
+export FZF_DEFAULT_COMMAND="fd --type f --hidden --follow --exclude .git 2>/dev/null || find . -type f"
+
+# ── PATH helpers ────────────────────────────────────────────────────
+append_path() {
+  case ":$PATH:" in
+    *":$1:"*) ;;
+    *) [ -d "$1" ] && PATH="$PATH:$1" ;;
+  esac
+}
+
+prepend_path() {
+  case ":$PATH:" in
+    *":$1:"*) ;;
+    *) [ -d "$1" ] && PATH="$1:$PATH" ;;
+  esac
+}
+
+# Homebrew (Apple Silicon / Intel)
+if [ -x /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x /usr/local/bin/brew ]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
+
+prepend_path "$HOME/.local/bin"
+prepend_path "$CARGO_HOME/bin"
+prepend_path "$GOPATH/bin"
+
+# pnpm / volta / bun — only if present
+export PNPM_HOME="${XDG_DATA_HOME}/pnpm"
+prepend_path "$PNPM_HOME"
+export VOLTA_HOME="${XDG_DATA_HOME}/volta"
+prepend_path "$VOLTA_HOME/bin"
+export BUN_INSTALL="${XDG_DATA_HOME}/bun"
+prepend_path "$BUN_INSTALL/bin"
+
+# Linux-only dircolors (safe no-op on macOS without GNU dircolors)
+if [ -f "${XDG_CONFIG_HOME}/dircolors" ] && command -v dircolors >/dev/null 2>&1; then
+  eval "$(dircolors "${XDG_CONFIG_HOME}/dircolors")"
+fi
+
+export PATH

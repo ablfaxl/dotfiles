@@ -1,0 +1,112 @@
+# Shared git defaults (no personal identity here)
+# Identity lives in config.local — see config.local.example
+
+[include]
+  path = config.local
+
+[alias]
+  la = "!git config -l | grep alias | cut -c 7-"
+  sb = "!git branch | fzf | cut -c 3- | xargs git checkout"
+  delete-merged-branches = "!f() { git checkout --quiet main && git branch --merged | grep --invert-match '\\*' | xargs -n 1 git branch --delete; git checkout --quiet @{-1}; }; f"
+  diff = diff --ignore-space-at-eol -b -w --ignore-blank-lines
+  addnw = "!sh -c 'git diff -U0 -w --no-color \"$@\" | git apply --cached --ignore-whitespace --unidiff-zero -'"
+  conf = "!git status --short | grep ^U"
+  l = log --graph --pretty=format:'%C(yellow)%h%Creset %C(bold blue)%an%C(reset) - %s - %Creset %C(yellow)%d%Creset %C(green)(%cr)%Creset' --abbrev-commit --date=relative
+  lg = log --graph --branches --remotes --tags --oneline --decorate --color
+  lg2 = log --graph --oneline --decorate --color
+  lga = log --graph --all --oneline --decorate --color
+  first = "rev-list --max-parents=0 HEAD"
+  day = "!git log --oneline --no-merges --since='today 00:00AM'"
+  week = "!git log --oneline --no-merges --since='last week'"
+  churn = "!f() { git log --all -M -C --name-only --format='format:' \"$@\" | sort | grep -v '^$' | uniq -c | sort | awk 'BEGIN {print \"count\\tfile\"} {print $1 \"\\t\" $2}' | sort -g; }; f"
+  deleted = "!git log --diff-filter=D --summary | grep delete"
+  empty = commit --allow-empty
+  count = shortlog -sn
+  undo = reset --soft HEAD~1
+  cleanup = "!git remote prune origin && git gc && git clean -df && git stash clear"
+  lt = describe --tags --abbrev=0
+  wip = commit -m 'WIP' --no-verify
+  root = commit -m 'root' --allow-empty
+  assume = update-index --assume-unchanged
+  unassume = update-index --no-assume-unchanged
+  assumed = "!git ls-files -v | grep ^h | cut -c 3-"
+  forget = "!git fetch -p && git branch -vv | awk '/: gone]/{print $1}' | xargs git branch -D"
+  recent = "!git for-each-ref --sort='-committerdate' --format='%(color:red)%(refname)%(color:reset)%09%(committerdate)' refs/heads | sed -e 's-refs/heads/--' | less -XFR"
+  pr = "!f() { git fetch -fu ${2:-origin} refs/pull/$1/head:pr/$1 && git checkout pr/$1; }; f"
+  pr-clean = "!git for-each-ref refs/heads/pr/* --format='%(refname)' | while read ref ; do branch=${ref#refs/heads/} ; git branch -D $branch ; done"
+  remotes = remote -v
+  tags = tag --list
+  aa = !git ls-files -d | xargs git rm && git ls-files -m -o --exclude-standard | xargs git add
+
+[color]
+  diff = auto
+  status = auto
+  branch = auto
+  interactive = auto
+  ui = auto
+[color "branch"]
+  current = green bold
+  local = green
+  remote = red bold
+[color "diff"]
+  meta = yellow bold
+  frag = magenta bold
+  old = red bold
+  new = green bold
+[color "status"]
+  added = cyan bold
+  changed = yellow bold
+  untracked = red bold
+[push]
+  default = current
+  followTags = true
+  autoSetupRemote = true
+[branch]
+  autosetuprebase = always
+[diff]
+  renames = copies
+  mnemonicprefix = true
+  colorMoved = default
+[difftool]
+  prompt = false
+[apply]
+  whitespace = nowarn
+[core]
+  editor = nvim
+  whitespace = cr-at-eol
+  pager = delta
+  excludesfile = ~/.config/git/ignore
+[interactive]
+  diffFilter = delta --color-only --features=interactive
+[delta]
+  navigate = true
+  side-by-side = true
+  dark = true
+  minus-style = black bold red
+  plus-style = black bold green
+  line-numbers-minus-style = red
+  line-numbers-plus-style = green
+  file-style = white bold
+  hunk-header-decoration-style = white box
+  file-decoration-style = ul
+[delta "interactive"]
+  keep-plus-minus-markers = false
+[rerere]
+  enabled = true
+[grep]
+  extendRegexp = true
+  lineNumber = true
+[rebase]
+  instructionFormat = "[%an - %ar] %s"
+  autoStash = true
+[pull]
+  rebase = true
+[init]
+  defaultBranch = main
+[merge]
+  conflictstyle = diff3
+[filter "lfs"]
+  smudge = git-lfs smudge -- %f
+  process = git-lfs filter-process
+  required = true
+  clean = git-lfs clean -- %f

@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# List process(es) listening on a port — works on macOS & Linux
+
+set -euo pipefail
+
+usage() {
+  echo "Usage: port [port-number]" >&2
+  exit "${1:-1}"
+}
+
+if [[ "${1:-}" = "-h" || "${1:-}" = "--help" ]]; then
+  usage 0
+fi
+
+if [[ -z "${1:-}" ]]; then
+  if command -v ss >/dev/null 2>&1; then
+    ss -tulpn 2>/dev/null || sudo ss -tulpn
+  elif command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP -sTCP:LISTEN
+  else
+    echo "Need ss or lsof" >&2
+    exit 127
+  fi
+  exit 0
+fi
+
+PORT="${1#:}"
+if ! [[ "$PORT" =~ ^[0-9]+$ ]] || ((PORT < 1 || PORT > 65535)); then
+  echo "Invalid port: $1 (expected 1-65535)" >&2
+  exit 1
+fi
+
+if command -v lsof >/dev/null 2>&1; then
+  # Header + rows: PID COMMAND ...
+  out="$(lsof -nP -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null || true)"
+  if [[ -z "$out" ]]; then
+    echo "no process listening on port ${PORT}" >&2
+    exit 0
+  fi
+  echo "$out"
+  exit 0
+fi
+
+if command -v ss >/dev/null 2>&1; then
+  ss -tulpn | grep -E ":${PORT}([^0-9]|$)" || echo "no process on port ${PORT}" >&2
+  exit 0
+fi
+
+echo "Need lsof or ss" >&2
+exit 127

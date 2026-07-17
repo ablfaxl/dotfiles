@@ -1,0 +1,16 @@
+# Copy to config.local (installer does this once) and fill in your details.
+# This file is gitignored via being created only in the linked destination,
+# or you can keep a private copy outside the repo.
+
+[user]
+  name = Your Name
+  email = you@example.com
+  # signingkey = YOUR_GPG_OR_SSH_KEY
+
+# Optional: enable commit signing after you set signingkey
+# [commit]
+#   gpgsign = true
+# [gpg]
+#   format = ssh
+# [gpg "ssh"]
+#   allowedSignersFile = ~/.ssh/allowed_signers

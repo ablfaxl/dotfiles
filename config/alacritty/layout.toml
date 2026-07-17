@@ -1,0 +1,16 @@
+[scrolling]
+history = 10000
+multiplier = 3
+
+[window]
+# macOS: "Buttonless" | Linux tiling: "None"
+decorations = "Buttonless"
+decorations_theme_variant = "Dark"
+dynamic_padding = true
+dynamic_title = true
+option_as_alt = "Both"
+
+[window.padding]
+x = 16
+y = 12
+

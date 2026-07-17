@@ -1,0 +1,38 @@
+# Core CLI — Homebrew (macOS)
+# Lines starting with # are ignored
+
+# shell & search
+zsh
+fzf
+fd
+ripgrep
+bat
+eza
+tree
+jq
+yq
+htop
+wget
+curl
+gnupg
+coreutils
+
+# editors / mux
+neovim
+tmux
+git
+git-delta
+gh
+lazygit
+
+# languages / runtimes helpers
+fnm
+pnpm
+node
+
+# extras
+curlie
+watch
+colima
+docker
+docker-compose

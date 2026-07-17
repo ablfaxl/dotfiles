@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Create / edit scripts in ~/.local/bin
+
+set -euo pipefail
+
+SCRIPT_PATH="${HOME}/.local/bin"
+mkdir -p "$SCRIPT_PATH"
+
+if [[ "${1:-}" = "-h" || "${1:-}" = "--help" ]]; then
+  echo "Usage: newscript <name>   # create or edit"
+  echo "       newscript -d <name>  # delete"
+  exit 0
+fi
+
+if [[ "${1:-}" = "-d" ]]; then
+  [[ -f "$SCRIPT_PATH/${2:-}" ]] && rm "$SCRIPT_PATH/$2"
+  exit 0
+fi
+
+if [[ -n "${1:-}" && "${1:0:1}" != "-" ]]; then
+  SCRIPT="$SCRIPT_PATH/$1"
+  if [[ ! -f "$SCRIPT" ]]; then
+    printf '#!/usr/bin/env bash\nset -euo pipefail\n\n' >"$SCRIPT"
+    chmod +x "$SCRIPT"
+  fi
+  "${EDITOR:-nvim}" "$SCRIPT"
+  exit 0
+fi
+
+if command -v fzf >/dev/null 2>&1 && command -v fd >/dev/null 2>&1; then
+  FILE="$(fd --max-depth 1 --type f --base-directory "$SCRIPT_PATH" | fzf --preview "less $SCRIPT_PATH/{}")"
+  [[ -n "${FILE:-}" ]] && "${EDITOR:-nvim}" "$SCRIPT_PATH/$FILE"
+else
+  ls -1 "$SCRIPT_PATH"
+fi

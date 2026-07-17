@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+# Portable aliases — macOS & Linux
+# Inspired by https://github.com/ /dotfiles
+
+_is_mac()  { [[ "$(uname -s)" == "Darwin" ]]; }
+_is_linux(){ [[ "$(uname -s)" == "Linux" ]]; }
+
+_clipboard_copy() {
+  if _is_mac; then
+    pbcopy
+  elif command -v wl-copy >/dev/null 2>&1; then
+    wl-copy
+  elif command -v xsel >/dev/null 2>&1; then
+    xsel -ib
+  elif command -v xclip >/dev/null 2>&1; then
+    xclip -selection clipboard
+  else
+    cat >/dev/null
+    echo "No clipboard tool found" >&2
+    return 1
+  fi
+}
+
+_open() {
+  if _is_mac; then
+    command open "$@"
+  elif command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "$@" &>/dev/null
+  else
+    echo "No open helper found" >&2
+    return 1
+  fi
+}
+
+edit() { "${EDITOR:-nvim}" "$@"; }
+
+# typos → clear
+alias c='clear'
+alias clwer='clear' cear='clear' cler='clear' clea='clear'
+alias clar='clear' clewar='clear' lear='clear' celra='clear'
+alias clera='clear' claer='clear' celar='clear' clare='clear'
+
+# enhance tools when present
+command -v curlie >/dev/null 2>&1 && alias curl='curlie'
+command -v nvim >/dev/null 2>&1 && alias vim='nvim'
+command -v bat >/dev/null 2>&1 && alias cat='bat --paging=never'
+command -v eza >/dev/null 2>&1 && alias ls='eza --group-directories-first --icons=auto'
+command -v eza >/dev/null 2>&1 || alias ls='ls --color=auto' 2>/dev/null || alias ls='ls -G'
+
+# safety / quality of life
+alias :q='exit'
+alias cp='cp -i'
+alias mv='mv -i'
+alias df='df -h'
+alias grep='grep --color=auto'
+alias mkdir='mkdir -pv'
+alias x='chmod +x'
+
+# navigation
+alias ~='cd ~'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias dt='cd ~/Desktop 2>/dev/null || cd ~/desktop 2>/dev/null || true'
+
+# sysadmin helpers
+alias findstr='grep -rnw'
+alias path='echo -e ${PATH//:/\\n} | sort'
+alias reload='source "${XDG_CONFIG_HOME}/aliasrc"'
+
+# config shortcuts
+alias zshrc='edit "${ZDOTDIR:-$HOME/.config/zsh}/.zshrc"'
+alias zalias='edit "${XDG_CONFIG_HOME}/aliasrc"'
+alias envrc='edit "${XDG_CONFIG_HOME}/env"'
+alias gitrc='edit "${XDG_CONFIG_HOME}/git/config"'
+alias tmuxrc='edit "${XDG_CONFIG_HOME}/tmux/tmux.conf"'
+alias sshrc='edit ~/.ssh/config'
+alias hosts='${EDITOR:-nvim} /etc/hosts'
+
+# file helpers
+alias lsa='ls -la'
+alias rd='rmdir'
+
+mk() { mkdir -p "$1" && cd "$1" || return; }
+
+tmp() {
+  local td
+  td="$(mktemp -d 2>/dev/null || mktemp -d -t dotfiles)"
+  cd "$td" || return
+}
+
+open() { _open "$@"; }
+
+# network
+alias ping='ping -i 1'
+alias genpass='openssl rand -base64 32'
+
+# npm / node
+alias npmls='npm ls --depth 0'
+alias npmr='npm remove'
+alias npmi='npm install'
+alias npmg='npm install --global'
+alias npms='npm start'
+alias npmb='npm run build'
+alias npmt='npm test'
+alias npmd='npm install -D'
+alias npmo='npm outdated'
+nvers() { npm show "$1" versions; }
+
+# docker
+alias dc='docker compose'
+alias dps='docker ps -a'
+alias drmi='docker image prune'
+alias drm='docker container prune'
+
+# git — high-signal subset
+alias clone='git clone'
+alias gs='git status -s'
+alias gsl='git stash list'
+alias gf='git fetch'
+alias gfp='git fetch --prune'
+alias gaa='git add . && git status -s'
+alias gb='git branch -v'
+alias gba='git branch -a'
+alias gbd='git branch -d'
+alias gbD='git branch -D'
+alias gc='git commit -v'
+alias gca='git commit --amend'
+alias 'gc!'='git commit -v --amend --no-edit'
+alias gcam='git commit -a -m'
+alias gcm='git commit -m'
+alias gswc='git switch -c'
+alias gco='git checkout'
+alias pull='git pull'
+alias push='git push'
+alias pushu='git push --set-upstream origin "$(git branch --show-current)"'
+alias gl='git log --oneline --decorate'
+alias glog='git log --graph --oneline --decorate --color'
+alias gm='git merge'
+alias gma='git merge --abort'
+alias gr='git reset'
+alias grh='git reset HEAD'
+alias grhh='git reset HEAD --hard'
+alias grv='git remote -v'
+alias gro='git remote add origin'
+alias grba='git rebase --abort'
+alias grbc='git rebase --continue'
+alias grbs='git rebase --skip'
+alias grbi='git rebase -i'
+alias gtv='git tag | sort -V'
+
+# HTTP verbs via curlie/curl
+for method in GET HEAD POST PUT PATCH DELETE TRACE OPTIONS; do
+  if command -v curlie >/dev/null 2>&1; then
+    alias "$method"="curlie -X '$method' -H 'content-type: application/json'"
+  else
+    alias "$method"="curl -X '$method' -H 'content-type: application/json'"
+  fi
+done
+
+# archive extractor
+ex() {
+  if [ -f "$1" ]; then
+    case "$1" in
+      *.tar.bz2) tar xjf "$1" ;;
+      *.tar.xz)  tar xf "$1" ;;
+      *.tar.gz)  tar xzf "$1" ;;
+      *.bz2)     bunzip2 "$1" ;;
+      *.rar)     unrar x "$1" ;;
+      *.gz)      gunzip "$1" ;;
+      *.tar)     tar xf "$1" ;;
+      *.tbz2)    tar xjf "$1" ;;
+      *.tgz)     tar xzf "$1" ;;
+      *.zip)     unzip "$1" ;;
+      *.Z)       uncompress "$1" ;;
+      *.7z)      7z x "$1" ;;
+      *) echo "'$1' cannot be extracted via ex()" ;;
+    esac
+  else
+    echo "'$1' is not a valid file"
+  fi
+}
+
+fix_perms() {
+  find . -type f ! -path '*/node_modules/*' -exec chmod 0664 {} \;
+  find . -type d ! -path '*/node_modules/*' -exec chmod 0775 {} \;
+}
+
+# macOS-friendly process kill by name substring
+killit() {
+  ps aux | grep -v grep | grep "$@" | awk '{print $2}' | xargs kill
+}
+
+# copy pwd
+cpwd() {
+  pwd | tr -d '\n' | _clipboard_copy && echo "copied: $(pwd)"
+}
