@@ -1,0 +1,264 @@
+#!/usr/bin/env bash
+# Apply Iran apt/pacman mirrors and neutralize broken third-party repos.
+# Can be run standalone or via: ./scripts/setup-server-shell.sh --iran
+#
+# Examples:
+#   ./setup-iran-mirrors.sh
+#   ./setup-iran-mirrors.sh --list
+#   ./setup-iran-mirrors.sh --mirror iut
+#   ./setup-iran-mirrors.sh --mirror iust
+#   ./setup-iran-mirrors.sh --mirror um
+#   IRAN_MIRROR=iut ./setup-iran-mirrors.sh
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# shellcheck source=../../lib/common.sh
+source "$ROOT/lib/common.sh"
+
+MIRROR_ID="${IRAN_MIRROR:-arvan}"
+
+# id|label|ubuntu_base|debian_base|debian_security|arch_base
+MIRROR_CATALOG=(
+  "arvan|ArvanCloud (default)|http://mirror.arvancloud.ir/ubuntu|http://mirror.arvancloud.ir/debian|http://mirror.arvancloud.ir/debian-security|https://mirror.arvancloud.ir/archlinux"
+  "iut|Isfahan University of Technology (IUT)|http://mirror.iut.ac.ir/repo/ubuntu|http://mirror.iut.ac.ir/repo/debian|http://mirror.iut.ac.ir/repo/debian-security|https://mirror.iut.ac.ir/repo/archlinux"
+  "iust|Iran University of Science and Technology (IUST)|http://mirror.iust.ac.ir/ubuntu|http://mirror.iust.ac.ir/debian|http://mirror.iust.ac.ir/debian-security|https://mirror.iust.ac.ir/archlinux"
+  "um|Ferdowsi University of Mashhad (UM)|http://mumirror.um.ac.ir/linux/ubuntu|http://mumirror.um.ac.ir/linux/debian|http://mumirror.um.ac.ir/linux/debian-security|https://mumirror.um.ac.ir/linux/archlinux"
+)
+
+usage() {
+  cat <<'EOF'
+Iran apt/pacman mirrors
+
+Usage:
+  ./setup-iran-mirrors.sh [--mirror <id>] [--list] [-h]
+
+Mirror ids:
+  arvan   ArvanCloud (default)
+  iut     Isfahan University of Technology — mirror.iut.ac.ir
+  iust    Iran University of Science and Technology — mirror.iust.ac.ir
+  um      Ferdowsi University of Mashhad — mumirror.um.ac.ir
+
+Env:
+  IRAN_MIRROR=<id>   same as --mirror
+EOF
+}
+
+list_mirrors() {
+  printf '\n%-8s  %s\n' "ID" "PROVIDER"
+  printf '%-8s  %s\n' "--------" "----------------------------------------------"
+  local row id label
+  for row in "${MIRROR_CATALOG[@]}"; do
+    IFS='|' read -r id label _ <<<"$row"
+    printf '%-8s  %s\n' "$id" "$label"
+  done
+  echo
+}
+
+resolve_mirror() {
+  local want="$1"
+  local row id label ubuntu debian security arch
+  for row in "${MIRROR_CATALOG[@]}"; do
+    IFS='|' read -r id label ubuntu debian security arch <<<"$row"
+    if [[ "$id" == "$want" ]]; then
+      IRAN_MIRROR_LABEL="$label"
+      IRAN_UBUNTU_MIRROR="$ubuntu"
+      IRAN_DEBIAN_MIRROR="$debian"
+      IRAN_DEBIAN_SECURITY="$security"
+      IRAN_ARCH_MIRROR="$arch"
+      return 0
+    fi
+  done
+  err "Unknown mirror id: $want (use --list)"
+  return 1
+}
+
+parse_mirror_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --mirror)
+        MIRROR_ID="$2"
+        shift 2
+        ;;
+      --mirror=*)
+        MIRROR_ID="${1#*=}"
+        shift
+        ;;
+      --list|-l)
+        list_mirrors
+        exit 0
+        ;;
+      -h|--help)
+        usage
+        list_mirrors
+        exit 0
+        ;;
+      *)
+        # When sourced, ignore foreign args
+        if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+          err "Unknown option: $1"
+          usage
+          exit 1
+        fi
+        shift
+        ;;
+    esac
+  done
+}
+
+ask_mirror_interactive() {
+  [[ -t 0 ]] || return 0
+  list_mirrors
+  printf 'Select mirror [%s]: ' "$MIRROR_ID"
+  local choice=""
+  read -r choice || true
+  [[ -n "${choice:-}" ]] && MIRROR_ID="$choice"
+}
+
+disable_broken_apt_repos() {
+  step "Disabling broken third-party apt repos (e.g. Docker 403)"
+  local f
+  shopt -s nullglob
+  for f in /etc/apt/sources.list.d/*docker* \
+           /etc/apt/sources.list.d/*Docker* \
+           /etc/apt/sources.list.d/download_docker_com* ; do
+    if [[ -f "$f" && "$f" != *.disabled ]]; then
+      sudo mv "$f" "${f}.disabled"
+      ok "Disabled $f"
+    fi
+  done
+  shopt -u nullglob
+}
+
+backup_file() {
+  local path="$1"
+  if [[ -f "$path" ]]; then
+    local stamp
+    stamp="$(date +%Y%m%d-%H%M%S)"
+    sudo cp -a "$path" "${path}.bak.${stamp}"
+    ok "Backed up $path"
+  fi
+}
+
+configure_ubuntu_iran() {
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  local codename="${VERSION_CODENAME:-jammy}"
+  local mirror="$IRAN_UBUNTU_MIRROR"
+
+  step "Configuring Ubuntu Iran mirror ($codename)"
+  info "Provider: $IRAN_MIRROR_LABEL"
+  info "URL: $mirror"
+  backup_file /etc/apt/sources.list
+
+  if [[ -f /etc/apt/sources.list.d/ubuntu.sources ]]; then
+    backup_file /etc/apt/sources.list.d/ubuntu.sources
+    sudo tee /etc/apt/sources.list.d/ubuntu.sources >/dev/null <<EOF
+Types: deb
+URIs: ${mirror}
+Suites: ${codename} ${codename}-updates ${codename}-backports ${codename}-security
+Components: main restricted universe multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+EOF
+    echo "# Managed by server-config Iran mirrors — see ubuntu.sources" | sudo tee /etc/apt/sources.list >/dev/null
+  else
+    sudo tee /etc/apt/sources.list >/dev/null <<EOF
+# Iran mirror — ${IRAN_MIRROR_LABEL}
+# Generated by server-config
+deb ${mirror} ${codename} main restricted universe multiverse
+deb ${mirror} ${codename}-updates main restricted universe multiverse
+deb ${mirror} ${codename}-backports main restricted universe multiverse
+deb ${mirror} ${codename}-security main restricted universe multiverse
+EOF
+  fi
+
+  disable_broken_apt_repos
+  sudo apt-get update
+  ok "Ubuntu Iran mirror active ($MIRROR_ID)"
+}
+
+configure_debian_iran() {
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  local codename="${VERSION_CODENAME:-bookworm}"
+
+  step "Configuring Debian Iran mirror ($codename)"
+  info "Provider: $IRAN_MIRROR_LABEL"
+  backup_file /etc/apt/sources.list
+  sudo tee /etc/apt/sources.list >/dev/null <<EOF
+# Iran mirror — ${IRAN_MIRROR_LABEL}
+# Generated by server-config
+deb ${IRAN_DEBIAN_MIRROR} ${codename} main contrib non-free non-free-firmware
+deb ${IRAN_DEBIAN_MIRROR} ${codename}-updates main contrib non-free non-free-firmware
+deb ${IRAN_DEBIAN_SECURITY} ${codename}-security main contrib non-free non-free-firmware
+EOF
+  disable_broken_apt_repos
+  sudo apt-get update
+  ok "Debian Iran mirror active ($MIRROR_ID)"
+}
+
+configure_arch_iran() {
+  step "Configuring Arch Iran mirror"
+  info "Provider: $IRAN_MIRROR_LABEL"
+  info "URL: $IRAN_ARCH_MIRROR"
+  backup_file /etc/pacman.d/mirrorlist
+  sudo tee /etc/pacman.d/mirrorlist >/dev/null <<EOF
+# Iran mirror — ${IRAN_MIRROR_LABEL}
+# Generated by server-config
+Server = ${IRAN_ARCH_MIRROR}/\$repo/os/\$arch
+EOF
+  sudo pacman -Sy
+  ok "Arch Iran mirror active ($MIRROR_ID)"
+}
+
+main() {
+  parse_mirror_args "$@"
+
+  if [[ "$(uname -s)" != "Linux" ]]; then
+    err "Linux only"
+    exit 1
+  fi
+
+  # Interactive pick when run directly without --mirror / IRAN_MIRROR override from env default path
+  if [[ "${BASH_SOURCE[0]}" == "${0}" && -z "${IRAN_MIRROR:-}" ]]; then
+    # Only prompt if user did not pass --mirror on CLI; parse already set MIRROR_ID
+    local passed_mirror=0
+    local a
+    for a in "$@"; do
+      [[ "$a" == --mirror || "$a" == --mirror=* ]] && passed_mirror=1
+    done
+    if [[ "$passed_mirror" -eq 0 ]]; then
+      ask_mirror_interactive
+    fi
+  fi
+
+  resolve_mirror "$MIRROR_ID"
+
+  if [[ -f /etc/os-release ]]; then
+    # shellcheck disable=SC1091
+    . /etc/os-release
+    case "${ID:-}" in
+      ubuntu) configure_ubuntu_iran ;;
+      debian) configure_debian_iran ;;
+      arch) configure_arch_iran ;;
+      *)
+        case "${ID_LIKE:-}" in
+          *ubuntu*) configure_ubuntu_iran ;;
+          *debian*) configure_debian_iran ;;
+          *arch*) configure_arch_iran ;;
+          *)
+            err "Unsupported distro for Iran mirrors: ${ID:-unknown}"
+            exit 1
+            ;;
+        esac
+        ;;
+    esac
+  else
+    err "Cannot detect distro (/etc/os-release missing)"
+    exit 1
+  fi
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi

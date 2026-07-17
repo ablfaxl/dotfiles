@@ -12,6 +12,8 @@ SERVER_ROOT="$ROOT/server-config"
 ASSUME_YES=0
 SKIP_PACKAGES=0
 SKIP_SHELL=0
+USE_IRAN_MIRROR=0
+IRAN_MIRROR_ID=""
 
 # shellcheck source=../lib/common.sh
 source "$ROOT/lib/common.sh"
@@ -25,9 +27,17 @@ Usage:
 
 Options:
   --yes, -y       Skip confirmation prompts
+  --iran          Use Iran mirrors (prompt / default ArvanCloud)
+  --mirror <id>   Iran mirror id: arvan | iut | iust | um  (implies --iran)
   --no-packages   Only link configs (skip package install)
   --no-shell      Do not change login shell to zsh
   -h, --help      Show this help
+
+Examples:
+  ./scripts/setup-server-shell.sh --yes --iran
+  ./scripts/setup-server-shell.sh --yes --mirror iut
+  ./server-config/mirrors/setup-iran-mirrors.sh --list
+  ./server-config/mirrors/setup-iran-mirrors.sh --mirror um
 EOF
 }
 
@@ -35,6 +45,17 @@ parse_args() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --yes|-y) ASSUME_YES=1; shift ;;
+      --iran) USE_IRAN_MIRROR=1; shift ;;
+      --mirror)
+        USE_IRAN_MIRROR=1
+        IRAN_MIRROR_ID="$2"
+        shift 2
+        ;;
+      --mirror=*)
+        USE_IRAN_MIRROR=1
+        IRAN_MIRROR_ID="${1#*=}"
+        shift
+        ;;
       --no-packages) SKIP_PACKAGES=1; shift ;;
       --no-shell) SKIP_SHELL=1; shift ;;
       -h|--help) usage; exit 0 ;;
@@ -87,9 +108,21 @@ install_packages() {
     debian)
       read_pkg_list "$SERVER_ROOT/packages/debian.txt" pkgs
       step "Installing packages via apt (${#pkgs[@]})"
-      sudo apt-get update
+
+      # Docker.com apt repo often returns 403 from some networks (e.g. IR) and blocks apt update
+      if [[ -f "$SERVER_ROOT/mirrors/setup-iran-mirrors.sh" ]]; then
+        # shellcheck source=../server-config/mirrors/setup-iran-mirrors.sh
+        source "$SERVER_ROOT/mirrors/setup-iran-mirrors.sh"
+        disable_broken_apt_repos
+      fi
+
+      if ! sudo apt-get update; then
+        warn "apt-get update failed — retry after neutralizing broken repos"
+        disable_broken_apt_repos 2>/dev/null || true
+        sudo apt-get update
+      fi
+
       sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${pkgs[@]}"
-      # Ubuntu binary aliases
       if command_exists fdfind && ! command_exists fd; then
         mkdir -p "$HOME/.local/bin"
         ln -sfn "$(command -v fdfind)" "$HOME/.local/bin/fd"
@@ -264,6 +297,15 @@ EOF
 
   if [[ "$ASSUME_YES" -ne 1 ]]; then
     confirm "Install graceful server shell?" || { warn "Aborted"; exit 0; }
+  fi
+
+  if [[ "$USE_IRAN_MIRROR" -eq 1 ]]; then
+    step "Applying Iran mirrors"
+    if [[ -n "$IRAN_MIRROR_ID" ]]; then
+      bash "$SERVER_ROOT/mirrors/setup-iran-mirrors.sh" --mirror "$IRAN_MIRROR_ID"
+    else
+      bash "$SERVER_ROOT/mirrors/setup-iran-mirrors.sh"
+    fi
   fi
 
   if [[ "$SKIP_PACKAGES" -eq 0 ]]; then

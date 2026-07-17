@@ -10,10 +10,33 @@ From this repo on the server:
 
 ```bash
 chmod +x scripts/setup-server-shell.sh
-./scripts/setup-server-shell.sh
-# or non-interactive:
 ./scripts/setup-server-shell.sh --yes
+
+# Iran networks (apt blocked / Docker repo 403):
+./scripts/setup-server-shell.sh --yes --iran
+
+# Pick a specific Iran mirror:
+./scripts/setup-server-shell.sh --yes --mirror iut
+./scripts/setup-server-shell.sh --yes --mirror iust
+./scripts/setup-server-shell.sh --yes --mirror um
 ```
+
+### Iran mirrors only
+
+```bash
+chmod +x server-config/mirrors/setup-iran-mirrors.sh
+./server-config/mirrors/setup-iran-mirrors.sh --list
+./server-config/mirrors/setup-iran-mirrors.sh --mirror iut
+```
+
+| ID | Provider | Host |
+|----|----------|------|
+| `arvan` (default) | ArvanCloud | `mirror.arvancloud.ir` |
+| `iut` | Isfahan University of Technology | `mirror.iut.ac.ir` |
+| `iust` | Iran University of Science and Technology | `mirror.iust.ac.ir` |
+| `um` | Ferdowsi University of Mashhad | `mumirror.um.ac.ir` |
+
+Also disables broken `download.docker.com` apt sources that return **403 Forbidden**.
 
 ## What you get
 
