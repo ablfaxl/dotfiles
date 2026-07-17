@@ -54,6 +54,16 @@ alias srestart='sudo systemctl restart'
 alias senable='sudo systemctl enable --now'
 alias sdisable='sudo systemctl disable --now'
 
+# Monitors
+if command -v btop >/dev/null 2>&1; then
+  alias bt='btop'
+  alias top='btop'
+elif command -v htop >/dev/null 2>&1; then
+  alias top='htop'
+fi
+alias nd='systemctl status netdata --no-pager'
+alias netdata-ui='echo "Netdata: http://$(hostname -I 2>/dev/null | awk "{print \$1}"):19999"'
+
 # Process helpers
 alias psg='ps aux | grep -v grep | grep'
 killit() {

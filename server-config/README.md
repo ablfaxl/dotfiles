@@ -22,9 +22,11 @@ chmod +x scripts/setup-server-shell.sh
 | `zsh` + Starship | Graceful prompt (user@host, path, git, duration) |
 | `tmux` | Sessions that survive SSH drops (prefix `Ctrl-a`) |
 | [Lazydocker](https://lazydocker.com/) | Terminal UI for containers, images, compose, logs |
+| `btop` | Modern TUI system monitor (CPU / mem / disks / net) |
+| [Netdata](https://www.netdata.cloud/) | Real-time metrics dashboard (`:19999`) |
 | `fzf` `rg` `fd` `bat` `eza` | Fast search / browse |
 | `htop` `ncdu` `jq` | Ops essentials |
-| `aliasrc` | Server aliases (`s`, `ports`, `ld`, `myip`, git shortcuts) |
+| `aliasrc` | Server aliases (`bt`, `ld`, `s`, `ports`, `myip`, …) |
 
 ## Lazydocker
 
@@ -34,15 +36,30 @@ Installed automatically by `setup-server-shell.sh`:
 - **Debian/Ubuntu**: official install script → `~/.local/bin`
 
 ```bash
-# Manual install / update (Linux)
-curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
-# Custom install dir:
-# DIR=/usr/local/bin bash <(curl -fsSL ...)
-
 lazydocker   # or: ld
 ```
 
 Requires a running Docker daemon. Add your user to the `docker` group if stats are missing.
+
+## btop
+
+Installed via apt/pacman with the core package list.
+
+```bash
+btop   # or: bt
+```
+
+## Netdata
+
+- **Arch**: `pacman` package `netdata` (enabled via systemd)
+- **Debian/Ubuntu**: official [kickstart](https://learn.netdata.cloud/installing/one-line-installer-for-linux/) (non-interactive)
+
+```bash
+# Dashboard (open firewall/security group for 19999 if remote)
+http://SERVER_IP:19999
+
+systemctl status netdata
+```
 
 ## Layout
 
@@ -64,7 +81,9 @@ server-config/
 ```bash
 exec zsh -l
 tmux
+btop         # system monitor
 lazydocker   # Docker TUI
+# Netdata UI: http://SERVER_IP:19999
 ```
 
 Machine-specific overrides: `~/.config/zsh/local.zsh`

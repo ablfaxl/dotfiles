@@ -11,6 +11,7 @@ fd-find
 bat
 eza
 htop
+btop
 jq
 unzip
 tree

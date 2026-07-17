@@ -11,9 +11,11 @@ fd
 bat
 eza
 htop
+btop
 jq
 unzip
 tree
 ncdu
 lsof
 rsync
+netdata

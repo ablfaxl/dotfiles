@@ -161,6 +161,42 @@ install_lazydocker() {
   fi
 }
 
+# Netdata — real-time metrics dashboard (https://www.netdata.cloud/)
+install_netdata() {
+  if command_exists netdata || systemctl is-active --quiet netdata 2>/dev/null; then
+    ok "netdata already installed"
+    return
+  fi
+
+  step "Installing netdata"
+
+  # Arch: prefer official package (also listed in packages/arch.txt)
+  if [[ -f /etc/arch-release ]]; then
+    if pacman -Qi netdata &>/dev/null; then
+      ok "netdata already present via pacman"
+    elif pacman -Si netdata &>/dev/null; then
+      sudo pacman -S --needed --noconfirm netdata
+      sudo systemctl enable --now netdata 2>/dev/null || true
+      ok "netdata installed via pacman"
+    else
+      warn "netdata package not found in pacman — falling back to kickstart"
+      curl -fsSL https://get.netdata.cloud/kickstart.sh \
+        | sh -s -- --non-interactive --stable-channel --disable-telemetry
+    fi
+  else
+    # Debian/Ubuntu: kickstart for a current, supported install
+    info "Installing netdata via official kickstart (non-interactive)"
+    curl -fsSL https://get.netdata.cloud/kickstart.sh \
+      | sh -s -- --non-interactive --stable-channel --disable-telemetry
+  fi
+
+  if command_exists netdata || systemctl list-unit-files netdata.service &>/dev/null; then
+    ok "netdata installed — dashboard usually at http://localhost:19999"
+  else
+    warn "netdata may need a manual check — see https://learn.netdata.cloud/"
+  fi
+}
+
 link_server_configs() {
   step "Linking server shell configs"
   ensure_dir "$HOME/.config" "$HOME/.local/bin" "$HOME/.local/share" "$HOME/.cache"
@@ -234,6 +270,7 @@ EOF
     install_packages "$distro"
     install_starship
     install_lazydocker
+    install_netdata
   fi
 
   link_server_configs
@@ -247,7 +284,9 @@ Next steps:
   1. Reload shell:   ${C_DIM}exec zsh -l${C_RESET}
   2. Open tmux:      ${C_DIM}tmux${C_RESET}  (prefix: Ctrl-a)
   3. Docker TUI:     ${C_DIM}lazydocker${C_RESET}  (alias: ld)
-  4. Customize:      ${C_DIM}~/.config/zsh/local.zsh${C_RESET}
+  4. System monitor: ${C_DIM}btop${C_RESET}  (alias: bt)
+  5. Metrics UI:     ${C_DIM}http://SERVER_IP:19999${C_RESET}  (netdata)
+  6. Customize:      ${C_DIM}~/.config/zsh/local.zsh${C_RESET}
 
 EOF
 }
