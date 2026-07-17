@@ -366,25 +366,45 @@ setup_shell() {
   fi
 }
 
+ensure_omz_plugins() {
+  local custom="$HOME/.config/oh-my-zsh/custom/plugins"
+  ensure_dir "$custom"
+
+  ensure_git_plugin() {
+    local name="$1"
+    local url="$2"
+    if [[ -d "$custom/$name/.git" ]]; then
+      ok "Plugin present: $name"
+      return 0
+    fi
+    info "Installing plugin: $name"
+    rm -rf "$custom/$name"
+    git clone --depth 1 "$url" "$custom/$name"
+    ok "Installed plugin: $name"
+  }
+
+  ensure_git_plugin zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions
+  ensure_git_plugin zsh-completions https://github.com/zsh-users/zsh-completions
+  # history-substring-search is bundled with oh-my-zsh (plugins/history-substring-search)
+}
+
 install_omz_optional() {
-  if [[ -d "$HOME/.config/oh-my-zsh" ]]; then
+  if [[ ! -d "$HOME/.config/oh-my-zsh" ]]; then
+    if [[ "$ASSUME_YES" -eq 1 ]] || confirm "Install oh-my-zsh into ~/.config/oh-my-zsh?"; then
+      info "Installing oh-my-zsh..."
+      RUNZSH=no CHSH=no KEEP_ZSHRC=yes ZSH="$HOME/.config/oh-my-zsh" \
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+      ok "oh-my-zsh installed"
+    else
+      warn "Skipping oh-my-zsh install"
+      return
+    fi
+  else
     ok "oh-my-zsh already present"
-    return
   fi
-  if [[ "$ASSUME_YES" -eq 1 ]] || confirm "Install oh-my-zsh into ~/.config/oh-my-zsh?"; then
-    info "Installing oh-my-zsh..."
-    RUNZSH=no CHSH=no KEEP_ZSHRC=yes ZSH="$HOME/.config/oh-my-zsh" \
-      sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-    local custom="$HOME/.config/oh-my-zsh/custom/plugins"
-    ensure_dir "$custom"
-    [[ -d "$custom/zsh-autosuggestions" ]] || \
-      git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions "$custom/zsh-autosuggestions"
-    [[ -d "$custom/zsh-completions" ]] || \
-      git clone --depth 1 https://github.com/zsh-users/zsh-completions "$custom/zsh-completions"
-    [[ -d "$custom/zsh-history-substring-search" ]] || \
-      git clone --depth 1 https://github.com/zsh-users/zsh-history-substring-search "$custom/zsh-history-substring-search"
-    ok "oh-my-zsh + plugins installed"
-  fi
+
+  step "Ensuring oh-my-zsh plugins"
+  ensure_omz_plugins
 }
 
 do_unlink() {
