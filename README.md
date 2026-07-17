@@ -42,6 +42,10 @@ make arch
 
 # Validate tooling
 make validate
+
+# Linux server shell (Debian/Ubuntu or Arch) — lightweight SSH setup
+./scripts/setup-server-shell.sh --yes
+# or: make server
 ```
 
 After install:

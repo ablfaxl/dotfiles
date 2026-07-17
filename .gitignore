@@ -15,6 +15,7 @@
 # Local / private overrides (never commit)
 config/git/config.local
 config/zsh/local.zsh
+server-config/zsh/local.zsh
 
 # Zsh runtime (generated when ZDOTDIR points into this repo)
 config/zsh/.zcompdump*
@@ -22,6 +23,10 @@ config/zsh/.zsh_history
 config/zsh/.zsh_sessions/
 config/zsh/.zshrc.zwc
 config/zsh/*.zwc
+server-config/zsh/.zcompdump*
+server-config/zsh/.zsh_history
+server-config/zsh/.zsh_sessions/
+server-config/zsh/*.zwc
 
 # Tmux plugin manager (cloned on install)
 config/tmux/plugins/

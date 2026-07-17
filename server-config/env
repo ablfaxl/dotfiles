@@ -1,0 +1,50 @@
+#!/bin/sh
+# Minimal server environment (Debian / Arch)
+
+export VISUAL="${VISUAL:-nvim}"
+export EDITOR="${EDITOR:-$VISUAL}"
+export SUDO_EDITOR="$EDITOR"
+export TERM="${TERM:-xterm-256color}"
+
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+export LANG="${LANG:-en_US.UTF-8}"
+
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+
+if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
+  if [ -d "/run/user/$(id -u)" ]; then
+    export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+  else
+    export XDG_RUNTIME_DIR="${TMPDIR:-/tmp}/xdg-runtime-$(id -u)"
+    mkdir -p "$XDG_RUNTIME_DIR"
+    chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
+  fi
+fi
+
+export ZDOTDIR="${XDG_CONFIG_HOME}/zsh"
+export LESSHISTFILE="/dev/null"
+export HISTFILE="${XDG_DATA_HOME}/history"
+export NPM_CONFIG_USERCONFIG="${XDG_CONFIG_HOME}/npm/npmrc"
+
+export FZF_DEFAULT_OPTS="--layout=reverse --height 40% --border"
+export FZF_DEFAULT_COMMAND="fd --type f --hidden --follow --exclude .git 2>/dev/null || find . -type f"
+
+append_path() {
+  case ":$PATH:" in
+    *":$1:"*) ;;
+    *) [ -d "$1" ] && PATH="$PATH:$1" ;;
+  esac
+}
+
+prepend_path() {
+  case ":$PATH:" in
+    *":$1:"*) ;;
+    *) [ -d "$1" ] && PATH="$1:$PATH" ;;
+  esac
+}
+
+prepend_path "$HOME/.local/bin"
+export PATH

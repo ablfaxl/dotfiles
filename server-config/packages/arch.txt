@@ -1,0 +1,19 @@
+# Graceful server shell — Arch Linux (pacman)
+zsh
+curl
+wget
+git
+tmux
+neovim
+fzf
+ripgrep
+fd
+bat
+eza
+htop
+jq
+unzip
+tree
+ncdu
+lsof
+rsync

@@ -1,0 +1,19 @@
+# Graceful server shell — Debian / Ubuntu (apt)
+zsh
+curl
+wget
+git
+tmux
+neovim
+fzf
+ripgrep
+fd-find
+bat
+eza
+htop
+jq
+unzip
+tree
+ncdu
+lsof
+rsync
