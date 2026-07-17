@@ -14,6 +14,7 @@ SKIP_PACKAGES=0
 SKIP_SHELL=0
 USE_IRAN_MIRROR=0
 IRAN_MIRROR_ID=""
+IRAN_MIRROR_URL=""
 
 # shellcheck source=../lib/common.sh
 source "$ROOT/lib/common.sh"
@@ -27,17 +28,19 @@ Usage:
 
 Options:
   --yes, -y       Skip confirmation prompts
-  --iran          Use Iran mirrors (prompt / default ArvanCloud)
-  --mirror <id>   Iran mirror id: arvan | iut | iust | um  (implies --iran)
+  --iran          Use Iran/global mirrors (interactive preset)
+  --mirror <id>   Named mirror: arvan|iut|iust|um|iranserver|sindad|...
+  --url <url>     Any Ubuntu archive URL (see mirrors/--list-all)
   --no-packages   Only link configs (skip package install)
   --no-shell      Do not change login shell to zsh
   -h, --help      Show this help
 
 Examples:
   ./scripts/setup-server-shell.sh --yes --iran
-  ./scripts/setup-server-shell.sh --yes --mirror iut
-  ./server-config/mirrors/setup-iran-mirrors.sh --list
-  ./server-config/mirrors/setup-iran-mirrors.sh --mirror um
+  ./scripts/setup-server-shell.sh --yes --mirror iranserver
+  ./scripts/setup-server-shell.sh --yes --url https://mirror.iranserver.com/ubuntu/
+  ./server-config/mirrors/setup-iran-mirrors.sh --list-all
+  ./server-config/mirrors/setup-iran-mirrors.sh --auto
 EOF
 }
 
@@ -54,6 +57,16 @@ parse_args() {
       --mirror=*)
         USE_IRAN_MIRROR=1
         IRAN_MIRROR_ID="${1#*=}"
+        shift
+        ;;
+      --url)
+        USE_IRAN_MIRROR=1
+        IRAN_MIRROR_URL="$2"
+        shift 2
+        ;;
+      --url=*)
+        USE_IRAN_MIRROR=1
+        IRAN_MIRROR_URL="${1#*=}"
         shift
         ;;
       --no-packages) SKIP_PACKAGES=1; shift ;;
@@ -300,8 +313,10 @@ EOF
   fi
 
   if [[ "$USE_IRAN_MIRROR" -eq 1 ]]; then
-    step "Applying Iran mirrors"
-    if [[ -n "$IRAN_MIRROR_ID" ]]; then
+    step "Applying package mirrors"
+    if [[ -n "${IRAN_MIRROR_URL:-}" ]]; then
+      bash "$SERVER_ROOT/mirrors/setup-iran-mirrors.sh" --url "$IRAN_MIRROR_URL"
+    elif [[ -n "$IRAN_MIRROR_ID" ]]; then
       bash "$SERVER_ROOT/mirrors/setup-iran-mirrors.sh" --mirror "$IRAN_MIRROR_ID"
     else
       bash "$SERVER_ROOT/mirrors/setup-iran-mirrors.sh"

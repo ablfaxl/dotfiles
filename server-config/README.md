@@ -15,18 +15,19 @@ chmod +x scripts/setup-server-shell.sh
 # Iran networks (apt blocked / Docker repo 403):
 ./scripts/setup-server-shell.sh --yes --iran
 
-# Pick a specific Iran mirror:
+# Pick a specific mirror:
 ./scripts/setup-server-shell.sh --yes --mirror iut
-./scripts/setup-server-shell.sh --yes --mirror iust
-./scripts/setup-server-shell.sh --yes --mirror um
+./scripts/setup-server-shell.sh --yes --mirror iranserver
+./scripts/setup-server-shell.sh --yes --url https://ae.archive.ubuntu.com/ubuntu/
 ```
 
-### Iran mirrors only
+### Iran / Ubuntu mirrors
 
 ```bash
-chmod +x server-config/mirrors/setup-iran-mirrors.sh
 ./server-config/mirrors/setup-iran-mirrors.sh --list
-./server-config/mirrors/setup-iran-mirrors.sh --mirror iut
+./server-config/mirrors/setup-iran-mirrors.sh --list-all   # 128 Ubuntu URLs
+./server-config/mirrors/setup-iran-mirrors.sh --mirror sindad
+./server-config/mirrors/setup-iran-mirrors.sh --auto       # probe until apt works
 ```
 
 | ID | Provider | Host |
@@ -35,6 +36,11 @@ chmod +x server-config/mirrors/setup-iran-mirrors.sh
 | `iut` | Isfahan University of Technology | `mirror.iut.ac.ir` |
 | `iust` | Iran University of Science and Technology | `mirror.iust.ac.ir` |
 | `um` | Ferdowsi University of Mashhad | `mumirror.um.ac.ir` |
+| `iranserver` | IranServer | `mirror.iranserver.com` |
+| `sindad` | Sindad | `ir.ubuntu.sindad.cloud` |
+| `faraso` / `pishgaman` / `ir-archive` | more IR options | see `--list` |
+
+Full catalog: [`mirrors/ubuntu-mirrors.txt`](./mirrors/ubuntu-mirrors.txt)
 
 Also disables broken `download.docker.com` apt sources that return **403 Forbidden**.
 
