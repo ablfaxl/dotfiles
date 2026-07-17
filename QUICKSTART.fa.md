@@ -16,8 +16,8 @@ chmod +x install.sh
 ./install.sh
 ```
 
-اسکریپت **همیشه** می‌پرسد: مک یا لینوکس؟  
-(مگر اینکه خودت `--os mac` یا `--os linux` بدهی)
+اسکریپت **همیشه** می‌پرسد: macOS / Ubuntu / Arch؟  
+(مگر اینکه `--os mac|ubuntu|arch` بدهی)
 
 ### مک (پیشنهادی)
 
@@ -27,12 +27,20 @@ chmod +x install.sh
 make mac
 ```
 
-### لینوکس
+### اوبونتو
 
 ```bash
-./install.sh --os linux --yes --packages --modules core,shell,git,tmux,bins
-# یا:
-make linux
+./install.sh --os ubuntu --yes --packages
+make ubuntu
+```
+
+### آرچ
+
+```bash
+./install.sh --os arch --yes --packages
+# optional AUR:
+./install.sh --os arch --yes --packages --aur
+make arch
 ```
 
 ### بعد از نصب

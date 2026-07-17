@@ -1,0 +1,40 @@
+# Core CLI — Arch Linux (pacman)
+# Install: sudo pacman -Syu --needed - < packages/pacman.txt
+
+# shell & search
+zsh
+fzf
+fd
+ripgrep
+bat
+eza
+tree
+jq
+yq
+htop
+wget
+curl
+gnupg
+unzip
+base-devel
+
+# editors / mux
+neovim
+tmux
+alacritty
+ttf-jetbrains-mono-nerd
+
+# git toolkit
+git
+git-delta
+github-cli
+lazygit
+
+# languages
+nodejs
+npm
+pnpm
+
+# containers
+docker
+docker-compose

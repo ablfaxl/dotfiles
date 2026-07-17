@@ -1,6 +1,7 @@
-# Core CLI — Debian/Ubuntu apt
-# (Arch users: map names to pacman equivalents)
+# Core CLI — Ubuntu / Debian (apt)
+# Package names differ slightly from Homebrew (e.g. fd-find, golang-github-cli)
 
+# shell & search
 zsh
 fzf
 fd-find
@@ -13,9 +14,17 @@ htop
 wget
 curl
 gnupg
-neovim
-tmux
-git
-gh
 unzip
 build-essential
+
+# editors / mux
+neovim
+tmux
+
+# git toolkit
+git
+gh
+
+# containers
+docker.io
+docker-compose-v2

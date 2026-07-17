@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Dotfiles bootstrap — macOS & Linux
+# Dotfiles bootstrap — macOS, Ubuntu, Arch
 # Usage:
-#   ./install.sh              # interactive
-#   ./install.sh --os mac
-#   ./install.sh --os linux
+#   ./install.sh
 #   ./install.sh --os mac --yes --packages
+#   ./install.sh --os ubuntu --yes --packages
+#   ./install.sh --os arch --yes --packages
 #   ./install.sh --unlink
 
 set -euo pipefail
@@ -18,19 +18,22 @@ ASSUME_YES=0
 INSTALL_PACKAGES=0
 SKIP_SHELL=0
 UNLINK=0
+WITH_AUR=0
 MODULES=()
 
 usage() {
   cat <<'EOF'
-Dotfiles installer — portable macOS & Linux setup
+Dotfiles installer — portable macOS / Ubuntu / Arch setup
 
 Usage:
   ./install.sh [options]
 
 Options:
-  --os <mac|linux>   Skip OS prompt and use this value
+  --os <mac|ubuntu|arch|linux>
+                     Skip OS prompt (linux is treated as ubuntu)
   --yes, -y          Skip "Proceed?" confirmation (still asks OS unless --os)
-  --packages         Install CLI packages (Homebrew / apt)
+  --packages         Install recommended packages for the selected OS
+  --aur              On Arch, also install packages/aur.txt via paru/yay
   --no-shell         Do not change the login shell to zsh
   --modules <list>   Comma-separated: core,shell,git,tmux,alacritty,zed,bins
                      Default: core,shell,git,tmux,bins
@@ -40,8 +43,23 @@ Options:
 Examples:
   ./install.sh
   ./install.sh --os mac --yes --packages
-  ./install.sh --os linux --modules core,shell,git,bins
+  ./install.sh --os ubuntu --yes --packages
+  ./install.sh --os arch --yes --packages --aur
 EOF
+}
+
+# Read non-comment, non-empty lines from a package list file into a bash array name.
+read_pkg_list() {
+  local file="$1"
+  local -n _out="$2"
+  _out=()
+  [[ -f "$file" ]] || return 0
+  local line
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${line//[[:space:]]/}" ]] && continue
+    _out+=("$line")
+  done <"$file"
 }
 
 parse_args() {
@@ -57,6 +75,10 @@ parse_args() {
         ;;
       --packages)
         INSTALL_PACKAGES=1
+        shift
+        ;;
+      --aur)
+        WITH_AUR=1
         shift
         ;;
       --no-shell)
@@ -84,44 +106,66 @@ parse_args() {
   done
 }
 
+normalize_os() {
+  case "$OS" in
+    mac|macos) OS="mac" ;;
+    ubuntu|debian|linux) OS="ubuntu" ;;
+    arch|archlinux) OS="arch" ;;
+    *)
+      err "Invalid OS: $OS (use mac, ubuntu, or arch)"
+      exit 1
+      ;;
+  esac
+}
+
 ask_os() {
-  # Only skip the prompt when user already passed --os
   if [[ -n "$OS" ]]; then
-    case "$OS" in
-      mac|linux) ;;
-      *)
-        err "Invalid --os value: $OS (use mac or linux)"
-        exit 1
-        ;;
-    esac
+    normalize_os
     info "Using OS from flag: $OS"
     return
   fi
 
   local detected
   detected="$(detect_os)"
+  local hint=""
+  if [[ "$detected" == "mac" ]]; then
+    hint="macOS"
+  elif [[ -f /etc/arch-release ]]; then
+    hint="Arch"
+  elif [[ -f /etc/os-release ]] && grep -qi ubuntu /etc/os-release 2>/dev/null; then
+    hint="Ubuntu"
+  elif [[ "$detected" == "linux" ]]; then
+    hint="Linux"
+  else
+    hint="$detected"
+  fi
 
   cat <<EOF
 
 ${C_BOLD}Which operating system?${C_RESET}
-${C_DIM}Host detected as: ${detected}${C_RESET}
+${C_DIM}Host detected as: ${hint}${C_RESET}
 
   ${C_CYAN}1)${C_RESET}  macOS
-  ${C_CYAN}2)${C_RESET}  Linux
+  ${C_CYAN}2)${C_RESET}  Ubuntu
+  ${C_CYAN}3)${C_RESET}  Arch Linux
 
 EOF
 
   local choice=""
   while true; do
-    printf 'Select [1/2 or mac/linux]: '
+    printf 'Select [1/2/3 or mac/ubuntu/arch]: '
     read -r choice || true
     case "${choice}" in
       1|mac|macos|Mac|MAC|m|M)
         OS="mac"
         break
         ;;
-      2|linux|Linux|LINUX|l|L)
-        OS="linux"
+      2|ubuntu|Ubuntu|debian|linux|Linux)
+        OS="ubuntu"
+        break
+        ;;
+      3|arch|Arch|archlinux)
+        OS="arch"
         break
         ;;
       "")
@@ -166,21 +210,79 @@ ensure_homebrew() {
 
 install_packages_mac() {
   ensure_homebrew
-  step "Installing Homebrew packages"
-  # shellcheck disable=SC2046
-  brew install $(grep -vE '^\s*#|^\s*$' "$DOTFILES_ROOT/packages/brew.txt" | tr '\n' ' ')
-  if [[ -f "$DOTFILES_ROOT/packages/brew-casks.txt" ]]; then
-    step "Installing Homebrew casks"
-    # shellcheck disable=SC2046
-    brew install --cask $(grep -vE '^\s*#|^\s*$' "$DOTFILES_ROOT/packages/brew-casks.txt" | tr '\n' ' ') || true
+  local pkgs=()
+  read_pkg_list "$DOTFILES_ROOT/packages/brew.txt" pkgs
+  if ((${#pkgs[@]})); then
+    step "Installing Homebrew packages (${#pkgs[@]})"
+    brew install "${pkgs[@]}"
   fi
+  local casks=()
+  read_pkg_list "$DOTFILES_ROOT/packages/brew-casks.txt" casks
+  if ((${#casks[@]})); then
+    step "Installing Homebrew casks (${#casks[@]})"
+    brew install --cask "${casks[@]}" || true
+  fi
+  ok "macOS packages installed"
+  info "Start Docker runtime with: colima start"
 }
 
-install_packages_linux() {
-  step "Installing apt packages (sudo)"
+install_packages_ubuntu() {
+  local pkgs=()
+  read_pkg_list "$DOTFILES_ROOT/packages/apt.txt" pkgs
+  step "Installing apt packages (${#pkgs[@]}) — sudo required"
   sudo apt-get update
-  # shellcheck disable=SC2046
-  sudo apt-get install -y $(grep -vE '^\s*#|^\s*$' "$DOTFILES_ROOT/packages/apt.txt" | tr '\n' ' ')
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${pkgs[@]}"
+
+  # Ubuntu fd/bat binary names
+  if command_exists fdfind && ! command_exists fd; then
+    mkdir -p "$HOME/.local/bin"
+    ln -sfn "$(command -v fdfind)" "$HOME/.local/bin/fd"
+    ok "Linked fdfind -> ~/.local/bin/fd"
+  fi
+  if command_exists batcat && ! command_exists bat; then
+    mkdir -p "$HOME/.local/bin"
+    ln -sfn "$(command -v batcat)" "$HOME/.local/bin/bat"
+    ok "Linked batcat -> ~/.local/bin/bat"
+  fi
+
+  if command_exists docker; then
+    sudo usermod -aG docker "$USER" 2>/dev/null || true
+    warn "Log out/in for docker group membership to apply"
+  fi
+  ok "Ubuntu packages installed"
+}
+
+install_packages_arch() {
+  local pkgs=()
+  read_pkg_list "$DOTFILES_ROOT/packages/pacman.txt" pkgs
+  step "Installing pacman packages (${#pkgs[@]}) — sudo required"
+  sudo pacman -Syu --needed --noconfirm "${pkgs[@]}"
+
+  if command_exists docker; then
+    sudo systemctl enable --now docker 2>/dev/null || true
+    sudo usermod -aG docker "$USER" 2>/dev/null || true
+    warn "Log out/in for docker group membership to apply"
+  fi
+
+  if [[ "$WITH_AUR" -eq 1 ]]; then
+    local helper=""
+    if command_exists paru; then helper=paru
+    elif command_exists yay; then helper=yay
+    fi
+    if [[ -z "$helper" ]]; then
+      warn "No AUR helper (paru/yay) found — skip packages/aur.txt"
+    else
+      local aur=()
+      read_pkg_list "$DOTFILES_ROOT/packages/aur.txt" aur
+      if ((${#aur[@]})); then
+        step "Installing AUR packages via $helper (${#aur[@]})"
+        "$helper" -S --needed --noconfirm "${aur[@]}"
+      else
+        info "packages/aur.txt is empty — nothing to install"
+      fi
+    fi
+  fi
+  ok "Arch packages installed"
 }
 
 link_core() {
@@ -273,7 +375,6 @@ install_omz_optional() {
     info "Installing oh-my-zsh..."
     RUNZSH=no CHSH=no KEEP_ZSHRC=yes ZSH="$HOME/.config/oh-my-zsh" \
       sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-    # Popular plugins
     local custom="$HOME/.config/oh-my-zsh/custom/plugins"
     ensure_dir "$custom"
     [[ -d "$custom/zsh-autosuggestions" ]] || \
@@ -326,7 +427,7 @@ print_banner() {
   cat <<EOF
 
 ${C_CYAN}${C_BOLD}┌──────────────────────────────────────────────┐
-│  Dotfiles · macOS & Linux bootstrap          │
+│  Dotfiles · macOS / Ubuntu / Arch            │
 │  Clean portable developer setup              │
 └──────────────────────────────────────────────┘${C_RESET}
 
@@ -357,7 +458,8 @@ main() {
   if [[ "$INSTALL_PACKAGES" -eq 1 ]]; then
     case "$OS" in
       mac) install_packages_mac ;;
-      linux) install_packages_linux ;;
+      ubuntu) install_packages_ubuntu ;;
+      arch) install_packages_arch ;;
     esac
   fi
 
@@ -379,6 +481,9 @@ Next steps:
   1. Set git identity   ${C_DIM}nvim ~/.config/git/config.local${C_RESET}
   2. Reload your shell  ${C_DIM}exec zsh -l${C_RESET}
   3. Install tmux plugins inside tmux: ${C_DIM}prefix + I${C_RESET}  (Ctrl-a then Shift-i)
+  4. Validate apps      ${C_DIM}./scripts/validate-apps.sh${C_RESET}
+
+Docs: ${C_DIM}APPS.md${C_RESET}
 
 Optional:
   ./install.sh --os $OS --modules alacritty,zed

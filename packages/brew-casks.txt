@@ -1,7 +1,11 @@
-# Optional GUI apps (Homebrew casks)
-# Uncomment what you want, or install later:
-#   brew install --cask alacritty
-#   brew install --cask font-jetbrains-mono-nerd-font
+# GUI / fonts — Homebrew casks (macOS)
 
 alacritty
 font-jetbrains-mono-nerd-font
+
+# Optional (uncomment if you want them):
+# visual-studio-code
+# zed
+# firefox
+# rectangle
+# bitwarden

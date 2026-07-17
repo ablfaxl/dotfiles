@@ -1,0 +1,7 @@
+# Optional AUR packages (paru / yay)
+# Only used when an AUR helper is available and you opt in.
+
+# Example extras:
+# visual-studio-code-bin
+# zed-editor-bin
+# brave-bin

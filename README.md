@@ -2,9 +2,9 @@
 
 # Dotfiles
 
-> راهنمای فارسی سریع: [QUICKSTART.fa.md](./QUICKSTART.fa.md)
+> Quick start (FA): [QUICKSTART.fa.md](./QUICKSTART.fa.md) · Apps plan: [APPS.md](./APPS.md)
 
-Portable **macOS + Linux** developer environment, curated from the useful cross‑platform parts of [ /dotfiles](https://github.com/ /dotfiles).
+Portable **macOS / Ubuntu / Arch** developer environment.
 
 Linux-only desktop stacks (Hyprland, i3, polybar, awesome, …) were intentionally left out. What remains is shell, git, tmux, terminal, and everyday CLI tooling — with a one-command installer.
 
@@ -19,20 +19,29 @@ chmod +x install.sh
 ./install.sh
 ```
 
-Installer asks **Mac or Linux**, then links configs and optionally installs packages.
+Installer asks **macOS / Ubuntu / Arch**, then links configs and optionally installs packages.
+
+See the full app plan, install commands, and validation in **[APPS.md](./APPS.md)**.
 
 ### One-liners
 
 ```bash
-# macOS — full setup (CLI + Alacritty + packages)
+# macOS — full setup
 ./install.sh --os mac --yes --packages --modules core,shell,git,tmux,alacritty,bins
 
-# Linux — core shell toolkit
-./install.sh --os linux --yes --packages --modules core,shell,git,tmux,bins
+# Ubuntu
+./install.sh --os ubuntu --yes --packages --modules core,shell,git,tmux,bins
+
+# Arch
+./install.sh --os arch --yes --packages --modules core,shell,git,tmux,alacritty,bins
 
 # Or via Make
 make mac
-make linux
+make ubuntu
+make arch
+
+# Validate tooling
+make validate
 ```
 
 After install:
@@ -46,6 +55,9 @@ exec zsh -l
 
 # 3) inside tmux: install plugins
 #    prefix (Ctrl-a) then Shift-i
+
+# 4) confirm apps
+./scripts/validate-apps.sh
 ```
 
 ---
