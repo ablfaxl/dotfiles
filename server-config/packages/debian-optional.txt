@@ -1,0 +1,4 @@
+# Optional apt packages — skipped if not in the distro repos
+# (e.g. eza is missing on Ubuntu 22.04 jammy; present on 24.04+)
+eza
+gh

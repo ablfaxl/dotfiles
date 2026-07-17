@@ -1,4 +1,7 @@
 # Graceful server shell — Debian / Ubuntu (apt)
+# Core packages available on Ubuntu 22.04 (jammy) and newer.
+# Optional / newer-only packages: see debian-optional.txt
+
 zsh
 curl
 wget
@@ -9,7 +12,6 @@ fzf
 ripgrep
 fd-find
 bat
-eza
 htop
 btop
 jq

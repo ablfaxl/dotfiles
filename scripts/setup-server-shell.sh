@@ -113,16 +113,65 @@ read_pkg_list() {
   done <"$file"
 }
 
+# Keep packages that exist in apt cache; report the rest.
+filter_apt_packages() {
+  local -n _in="$1"
+  local -n _ok="$2"
+  local -n _miss="$3"
+  _ok=()
+  _miss=()
+  local p
+  for p in "${_in[@]}"; do
+    if apt-cache show "$p" &>/dev/null; then
+      _ok+=("$p")
+    else
+      _miss+=("$p")
+    fi
+  done
+}
+
+install_eza_fallback() {
+  if command_exists eza; then
+    ok "eza already installed"
+    return
+  fi
+  step "Installing eza (not in Ubuntu 22.04 apt — GitHub binary)"
+  ensure_dir "$HOME/.local/bin"
+  local arch
+  case "$(uname -m)" in
+    x86_64|amd64) arch="x86_64-unknown-linux-gnu" ;;
+    aarch64|arm64) arch="aarch64-unknown-linux-gnu" ;;
+    *)
+      warn "No eza binary for arch $(uname -m) — skipping (ls aliases will use GNU ls)"
+      return
+      ;;
+  esac
+  local tmp
+  tmp="$(mktemp -d)"
+  if curl -fsSL "https://github.com/eza-community/eza/releases/latest/download/eza_${arch}.tar.gz" \
+    -o "$tmp/eza.tar.gz" \
+    && tar -xzf "$tmp/eza.tar.gz" -C "$tmp" \
+    && install -m 755 "$tmp/eza" "$HOME/.local/bin/eza"; then
+    ok "eza installed to ~/.local/bin/eza"
+  else
+    warn "eza binary install failed — continuing without it"
+  fi
+  rm -rf "$tmp"
+}
+
 install_packages() {
   local distro="$1"
   local pkgs=()
+  local optional=()
+  local available=()
+  local missing=()
 
   case "$distro" in
     debian)
       read_pkg_list "$SERVER_ROOT/packages/debian.txt" pkgs
-      step "Installing packages via apt (${#pkgs[@]})"
+      read_pkg_list "$SERVER_ROOT/packages/debian-optional.txt" optional
+      step "Installing packages via apt"
 
-      # Docker.com apt repo often returns 403 from some networks (e.g. IR) and blocks apt update
       if [[ -f "$SERVER_ROOT/mirrors/setup-iran-mirrors.sh" ]]; then
         # shellcheck source=../server-config/mirrors/setup-iran-mirrors.sh
         source "$SERVER_ROOT/mirrors/setup-iran-mirrors.sh"
@@ -135,7 +184,26 @@ install_packages() {
         sudo apt-get update
       fi
 
-      sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${pkgs[@]}"
+      filter_apt_packages pkgs available missing
+      if ((${#missing[@]})); then
+        warn "Not in apt repos (will try fallbacks): ${missing[*]}"
+      fi
+      # Merge optional that exist
+      local opt_ok=() opt_miss=()
+      filter_apt_packages optional opt_ok opt_miss
+      available+=("${opt_ok[@]}")
+      if ((${#opt_miss[@]})); then
+        info "Optional skipped (not in repos): ${opt_miss[*]}"
+      fi
+
+      if ((${#available[@]} == 0)); then
+        err "No apt packages available to install"
+        exit 1
+      fi
+
+      info "Installing: ${available[*]}"
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${available[@]}"
+
       if command_exists fdfind && ! command_exists fd; then
         mkdir -p "$HOME/.local/bin"
         ln -sfn "$(command -v fdfind)" "$HOME/.local/bin/fd"
@@ -145,6 +213,11 @@ install_packages() {
         mkdir -p "$HOME/.local/bin"
         ln -sfn "$(command -v batcat)" "$HOME/.local/bin/bat"
         ok "Linked batcat -> ~/.local/bin/bat"
+      fi
+
+      # eza missing on jammy — install binary fallback
+      if ! command_exists eza; then
+        install_eza_fallback
       fi
       ;;
     arch)
