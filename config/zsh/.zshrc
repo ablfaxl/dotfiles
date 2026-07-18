@@ -105,6 +105,13 @@ if command -v zoxide >/dev/null 2>&1; then
   eval "$(zoxide init zsh)"
 fi
 
+# fnm — Node version manager (auto-switch on cd via .node-version / .nvmrc)
+if command -v fnm >/dev/null 2>&1; then
+  eval "$(fnm env --use-on-cd --shell zsh)"
+elif [[ -x "${XDG_DATA_HOME:-$HOME/.local/share}/fnm/fnm" ]]; then
+  eval "$("${XDG_DATA_HOME:-$HOME/.local/share}/fnm/fnm" env --use-on-cd --shell zsh)"
+fi
+
 autoload -Uz compinit
 compinit -i -d "${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump-${ZSH_VERSION}"
 
@@ -131,3 +138,6 @@ fi
 [[ -f "${XDG_CONFIG_HOME}/zsh/local.zsh" ]] && . "${XDG_CONFIG_HOME}/zsh/local.zsh"
 
 unset _OMZ_OK
+
+# bun completions
+[ -s "/home/dev/.local/share/bun/_bun" ] && source "/home/dev/.local/share/bun/_bun"

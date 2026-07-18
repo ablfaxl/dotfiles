@@ -74,6 +74,17 @@ check_optional alacritty
 check_optional docker
 check_optional colima
 
+step "Node / JS / React"
+check_optional fnm
+check_optional node
+check_optional npm
+check_optional pnpm
+check_optional yarn
+check_optional bun
+check_optional ni
+check_optional nr
+check_optional tsx
+
 echo
 info "Results: ${pass} ok, ${fail} missing, ${skip} optional-skipped"
 if ((fail > 0)); then

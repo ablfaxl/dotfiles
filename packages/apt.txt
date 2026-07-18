@@ -40,6 +40,10 @@ git-delta
 git-lfs
 gh
 
+# languages — Node LTS preferred via `make node` (fnm); apt as fallback
+nodejs
+npm
+
 # containers
 docker.io
 docker-compose-v2

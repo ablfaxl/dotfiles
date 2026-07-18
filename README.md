@@ -45,6 +45,9 @@ make arch
 # Validate tooling
 make validate
 
+# Node / React / JS toolchain (all OS)
+make node
+
 # Linux server shell (Debian/Ubuntu or Arch) — lightweight SSH setup
 ./scripts/setup-server-shell.sh --yes
 # or: make server
@@ -116,6 +119,7 @@ exec zsh -l
 | `alacritty` | Alacritty                                                  |
 | `zed`       | Zed editor                                                 |
 | `bins`      | `~/.local/bin` scripts                                     |
+| `node`      | fnm + Node LTS + pnpm/yarn/bun + `@antfu/ni` (ni/nr/nlx)   |
 
 ---
 

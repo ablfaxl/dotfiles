@@ -30,10 +30,12 @@ git-delta
 github-cli
 lazygit
 
-# languages
+# languages — prefer fnm via `make node` for LTS; pacman as baseline
 nodejs
 npm
 pnpm
+yarn
+# fnm  # also: scripts/install-node-toolchain.sh
 
 # containers
 docker

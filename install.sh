@@ -35,8 +35,8 @@ Options:
   --packages         Install recommended packages for the selected OS
   --aur              On Arch, also install packages/aur.txt via paru/yay
   --no-shell         Do not change the login shell to zsh
-  --modules <list>   Comma-separated: core,shell,git,tmux,alacritty,zed,bins
-                     Default: core,shell,git,tmux,bins
+  --modules <list>   Comma-separated: core,shell,git,tmux,alacritty,zed,bins,node
+                     Default: core,shell,git,tmux,bins,node
   --unlink           Remove symlinks created by this installer
   -h, --help         Show this help
 
@@ -182,7 +182,7 @@ EOF
 
 default_modules() {
   if [[ ${#MODULES[@]} -eq 0 ]]; then
-    MODULES=(core shell git tmux bins)
+    MODULES=(core shell git tmux bins node)
   fi
 }
 
@@ -394,6 +394,12 @@ link_bins() {
   done
 }
 
+install_node_toolchain() {
+  step "Node / React / JS toolchain (fnm + ni/nr + globals)"
+  chmod +x "$DOTFILES_ROOT/scripts/install-node-toolchain.sh"
+  "$DOTFILES_ROOT/scripts/install-node-toolchain.sh"
+}
+
 setup_shell() {
   [[ "$SKIP_SHELL" -eq 1 ]] && return
   if ! command_exists zsh; then
@@ -569,6 +575,7 @@ main() {
   has_module alacritty && link_alacritty
   has_module zed && link_zed
   has_module bins && link_bins
+  has_module node && install_node_toolchain
 
   setup_shell
 
@@ -587,6 +594,7 @@ Docs: ${C_DIM}APPS.md${C_RESET}
 Optional:
   ./install.sh --os $OS --modules alacritty,zed
   ./install.sh --os $OS --packages
+  make node                 ${C_DIM}# fnm + Node LTS + ni/nr + JS globals${C_RESET}
 
 EOF
 }

@@ -24,3 +24,8 @@ shape = "Block"
 [selection]
 save_to_clipboard = true
 semantic_escape_chars = ",│`|:\"' ()[]{}<>\t"
+
+# Login shell so ~/.zprofile + fnm/pnpm PATH always load
+[shell]
+program = "zsh"
+args = ["-l"]

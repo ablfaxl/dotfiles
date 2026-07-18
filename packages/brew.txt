@@ -27,10 +27,12 @@ git-delta
 gh
 lazygit
 
-# languages / runtimes
+# languages / runtimes (Node preferred via fnm — see make node)
 fnm
 pnpm
 node
+yarn
+# bun  # optional; also installed by scripts/install-node-toolchain.sh
 
 # http / watch
 curlie

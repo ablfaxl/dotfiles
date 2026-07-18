@@ -89,6 +89,24 @@ Ubuntu notes:
 - `fd` / `bat` may appear as `fdfind` / `batcat` — the installer links short names into `~/.local/bin`
 - `git-delta` provides the `delta` binary used by git paging
 - Install **JetBrains Mono** (apt) or a Nerd Font for eza/Alacritty icons
+- Node/React: prefer `make node` (fnm + LTS + `ni`/`nr`) over apt's older `nodejs`
+
+### Node / React / JS (all OS)
+
+```bash
+make node
+# or: ./scripts/install-node-toolchain.sh
+```
+
+Installs **fnm**, **Node LTS**, **pnpm/yarn** (corepack), **bun** (optional), and globals from `packages/npm-globals.txt` including **`@antfu/ni`** → `ni` / `nr` / `nlx` / `nun`.
+
+| Command | Meaning |
+|---------|---------|
+| `ni` | install deps (detects npm/pnpm/yarn/bun) |
+| `nr dev` | run `dev` script |
+| `nlx create-vite@latest app -- --template react-ts` | scaffold |
+| `fnm use 22` | switch Node version |
+| `nrd` / `nrb` / `nrt` | aliases for `nr dev/build/test` |
 
 ### Arch (pacman)
 

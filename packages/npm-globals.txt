@@ -1,0 +1,29 @@
+# Global npm packages installed after Node is available
+# Used by: scripts/install-node-toolchain.sh
+#
+# Package-manager helpers
+@antfu/ni
+
+# TypeScript / run
+typescript
+tsx
+ts-node
+
+# Lint / format (project-local preferred; globals for one-offs)
+eslint
+prettier
+
+# Upgrade helpers
+npm-check-updates
+
+# Scaffold / DX
+create-vite
+create-next-app
+degit
+serve
+http-server
+nodemon
+concurrently
+rimraf
+cross-env
+dotenv-cli

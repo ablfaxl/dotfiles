@@ -96,13 +96,41 @@ prepend_path "$HOME/.local/bin"
 prepend_path "$CARGO_HOME/bin"
 prepend_path "$GOPATH/bin"
 
+# fnm (Fast Node Manager) — preferred Node install on all OS
+export FNM_DIR="${FNM_DIR:-$XDG_DATA_HOME/fnm}"
+prepend_path "$FNM_DIR"
+# Always expose the default Node install bin (pnpm/npm/ni) even before `fnm env`
+if [ -d "$FNM_DIR/node-versions" ]; then
+  for _fnm_ver in "$FNM_DIR"/node-versions/*/installation/bin; do
+    [ -d "$_fnm_ver" ] && prepend_path "$_fnm_ver"
+  done
+  unset _fnm_ver
+fi
+if [ -x "$FNM_DIR/fnm" ] || command -v fnm >/dev/null 2>&1; then
+  _fnm_bin="$FNM_DIR/fnm"
+  command -v fnm >/dev/null 2>&1 && _fnm_bin="$(command -v fnm)"
+  # Prefer plain env in POSIX sh (zprofile/zshenv); zshrc adds --use-on-cd
+  # shellcheck disable=SC3046,SC1091
+  eval "$("$_fnm_bin" env --shell bash 2>/dev/null || true)"
+  unset _fnm_bin
+fi
+
 # pnpm / volta / bun — only if present
 export PNPM_HOME="${XDG_DATA_HOME}/pnpm"
 prepend_path "$PNPM_HOME"
 export VOLTA_HOME="${XDG_DATA_HOME}/volta"
 prepend_path "$VOLTA_HOME/bin"
-export BUN_INSTALL="${XDG_DATA_HOME}/bun"
+export BUN_INSTALL="${BUN_INSTALL:-$XDG_DATA_HOME/bun}"
+# bun install.sh may use ~/.bun — cover both
 prepend_path "$BUN_INSTALL/bin"
+prepend_path "$HOME/.bun/bin"
+
+# npm global bin (when not using fnm's npm prefix)
+if command -v npm >/dev/null 2>&1; then
+  _npm_bin="$(npm config get prefix 2>/dev/null)/bin"
+  prepend_path "$_npm_bin"
+  unset _npm_bin
+fi
 
 # Linux-only dircolors (safe no-op on macOS without GNU dircolors)
 if [ -f "${XDG_CONFIG_HOME}/dircolors" ] && command -v dircolors >/dev/null 2>&1; then

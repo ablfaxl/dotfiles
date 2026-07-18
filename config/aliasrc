@@ -121,7 +121,7 @@ open() { _open "$@"; }
 alias ping='ping -i 1'
 alias genpass='openssl rand -base64 32'
 
-# npm / node
+# npm / node / pnpm / yarn / bun — frontend + backend JS
 alias npmls='npm ls --depth 0'
 alias npmr='npm remove'
 alias npmi='npm install'
@@ -131,7 +131,86 @@ alias npmb='npm run build'
 alias npmt='npm test'
 alias npmd='npm install -D'
 alias npmo='npm outdated'
+alias npmf='npm install --force'
+alias npmc='npm ci'
 nvers() { npm show "$1" versions; }
+
+# @antfu/ni — auto-detect package manager (install via: make node)
+# ni  = install   |  nr = run script  |  nlx = dlx/npx  |  nun = uninstall
+# Fallbacks if ni is not on PATH yet:
+if ! command -v ni >/dev/null 2>&1; then
+  ni() {
+    if [[ -f pnpm-lock.yaml ]] || [[ -f pnpm-workspace.yaml ]]; then pnpm install "$@"
+    elif [[ -f yarn.lock ]]; then yarn install "$@"
+    elif [[ -f bun.lockb ]] || [[ -f bun.lock ]]; then bun install "$@"
+    else npm install "$@"; fi
+  }
+fi
+if ! command -v nr >/dev/null 2>&1; then
+  nr() {
+    if [[ -f pnpm-lock.yaml ]] || [[ -f pnpm-workspace.yaml ]]; then pnpm run "$@"
+    elif [[ -f yarn.lock ]]; then yarn run "$@"
+    elif [[ -f bun.lockb ]] || [[ -f bun.lock ]]; then bun run "$@"
+    else npm run "$@"; fi
+  }
+fi
+if ! command -v nlx >/dev/null 2>&1; then
+  nlx() {
+    if command -v pnpm >/dev/null 2>&1; then pnpm dlx "$@"
+    elif command -v bun >/dev/null 2>&1; then bunx "$@"
+    else npx "$@"; fi
+  }
+fi
+if ! command -v nun >/dev/null 2>&1; then
+  nun() {
+    if [[ -f pnpm-lock.yaml ]]; then pnpm remove "$@"
+    elif [[ -f yarn.lock ]]; then yarn remove "$@"
+    elif [[ -f bun.lockb ]] || [[ -f bun.lock ]]; then bun remove "$@"
+    else npm uninstall "$@"; fi
+  }
+fi
+
+# React / Vite / Next shortcuts
+alias nrd='nr dev'
+alias nrb='nr build'
+alias nrs='nr start'
+alias nrt='nr test'
+alias nrl='nr lint'
+alias nrf='nr format'
+alias nrp='nr preview'
+alias nrstory='nr storybook'
+
+# pnpm / yarn / bun short forms
+alias p='pnpm'
+alias pi='pnpm install'
+alias pa='pnpm add'
+alias pad='pnpm add -D'
+alias pr='pnpm run'
+alias px='pnpm dlx'
+alias y='yarn'
+alias ya='yarn add'
+alias yd='yarn add -D'
+alias b='bun'
+alias bi='bun install'
+alias ba='bun add'
+alias br='bun run'
+alias bx='bunx'
+
+# Node version helpers (fnm)
+alias nls='fnm list 2>/dev/null || true'
+alias nuse='fnm use'
+alias ninstall='fnm install'
+alias nlts='fnm install --lts && fnm use lts-latest'
+
+# Clean JS project junk
+nm_clean() {
+  find . -name node_modules -type d -prune -print -exec rm -rf {} +
+  echo "removed node_modules trees"
+}
+lock_clean() {
+  rm -f package-lock.json yarn.lock pnpm-lock.yaml bun.lockb bun.lock
+  echo "removed lockfiles"
+}
 
 # docker
 alias dc='docker compose'
