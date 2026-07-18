@@ -1,4 +1,5 @@
-[general]
+# Alacritty 0.13.x (Ubuntu) uses top-level keys.
+# Alacritty 0.14+ prefers [general] — keep this layout for Ubuntu apt.
 import = [
   "./color.toml",
   "./layout.toml",
