@@ -364,6 +364,18 @@ link_tmux() {
 link_alacritty() {
   step "Linking Alacritty"
   link_file "$DOTFILES_ROOT/config/alacritty" "$HOME/.config/alacritty"
+  # On Ubuntu/GNOME, make Alacritty the system default terminal when possible
+  if [[ "$OS" == "ubuntu" ]] && command_exists alacritty; then
+    if command_exists gsettings; then
+      gsettings set org.gnome.desktop.default-applications.terminal exec 'alacritty' 2>/dev/null || true
+      gsettings set org.gnome.desktop.default-applications.terminal exec-arg '-e' 2>/dev/null || true
+      ok "GNOME default terminal → alacritty"
+    fi
+    if [[ -x /usr/bin/alacritty ]] && command_exists update-alternatives; then
+      run_root update-alternatives --set x-terminal-emulator /usr/bin/alacritty 2>/dev/null \
+        || warn "Run: sudo update-alternatives --set x-terminal-emulator /usr/bin/alacritty"
+    fi
+  fi
 }
 
 link_zed() {
