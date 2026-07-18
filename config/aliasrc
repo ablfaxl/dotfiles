@@ -40,21 +40,48 @@ alias clwer='clear' cear='clear' cler='clear' clea='clear'
 alias clar='clear' clewar='clear' lear='clear' celra='clear'
 alias clera='clear' claer='clear' celar='clear' clare='clear'
 
+# Ubuntu/Debian: apt ships batcat / fdfind — prefer short names
+command -v bat >/dev/null 2>&1 || { command -v batcat >/dev/null 2>&1 && alias bat='batcat'; }
+command -v fd >/dev/null 2>&1 || { command -v fdfind >/dev/null 2>&1 && alias fd='fdfind'; }
+
 # enhance tools when present
 command -v curlie >/dev/null 2>&1 && alias curl='curlie'
 command -v nvim >/dev/null 2>&1 && alias vim='nvim'
-command -v bat >/dev/null 2>&1 && alias cat='bat --paging=never'
-command -v eza >/dev/null 2>&1 && alias ls='eza --group-directories-first --icons=auto'
-command -v eza >/dev/null 2>&1 || alias ls='ls --color=auto' 2>/dev/null || alias ls='ls -G'
+if command -v bat >/dev/null 2>&1; then
+  alias cat='bat --paging=never'
+elif command -v batcat >/dev/null 2>&1; then
+  alias cat='batcat --paging=never'
+fi
+# eza: icons when a Nerd Font is present; otherwise clean colored listing
+if command -v eza >/dev/null 2>&1; then
+  if fc-list 2>/dev/null | grep -qi 'Nerd Font'; then
+    alias ls='eza --group-directories-first --icons=auto'
+  else
+    alias ls='eza --group-directories-first --icons=never'
+  fi
+else
+  alias ls='ls --color=auto' 2>/dev/null || alias ls='ls -G'
+fi
+command -v btop >/dev/null 2>&1 && alias top='btop'
+command -v duf >/dev/null 2>&1 && alias df='duf'
+command -v duf >/dev/null 2>&1 || alias df='df -h'
+command -v delta >/dev/null 2>&1 && alias diff='delta'
 
 # safety / quality of life
 alias :q='exit'
 alias cp='cp -i'
 alias mv='mv -i'
-alias df='df -h'
 alias grep='grep --color=auto'
 alias mkdir='mkdir -pv'
 alias x='chmod +x'
+
+# geek / sysadmin quick looks
+alias ports='ss -tulpn 2>/dev/null || netstat -tulpn 2>/dev/null'
+alias listening='ports'
+alias myip='curl -fsS https://ifconfig.me; echo'
+alias ipa='ip -c a 2>/dev/null || ifconfig'
+weather() { curl -fsS "https://wttr.in/${1:-}?format=3"; }
+please() { sudo "$(fc -ln -1)"; }
 
 # navigation
 alias ~='cd ~'

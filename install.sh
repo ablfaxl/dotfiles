@@ -228,25 +228,61 @@ install_packages_mac() {
 
 install_packages_ubuntu() {
   local pkgs=()
+  local missing=()
+  local p
   read_pkg_list "$DOTFILES_ROOT/packages/apt.txt" pkgs
-  step "Installing apt packages (${#pkgs[@]}) — sudo required"
-  sudo apt-get update
-  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${pkgs[@]}"
+  step "Installing apt packages (${#pkgs[@]}) — root/sudo required"
+  run_root apt-get update
+
+  # Skip packages unavailable on this Ubuntu release (keeps install resilient)
+  for p in "${pkgs[@]}"; do
+    if apt-cache show "$p" >/dev/null 2>&1; then
+      continue
+    fi
+    missing+=("$p")
+  done
+  if ((${#missing[@]})); then
+    warn "Skipping unavailable packages: ${missing[*]}"
+    local filtered=()
+    for p in "${pkgs[@]}"; do
+      local skip=0 m
+      for m in "${missing[@]}"; do
+        [[ "$p" == "$m" ]] && skip=1 && break
+      done
+      [[ "$skip" -eq 0 ]] && filtered+=("$p")
+    done
+    pkgs=("${filtered[@]}")
+  fi
+
+  if ((${#pkgs[@]})); then
+    run_root env DEBIAN_FRONTEND=noninteractive apt-get install -y "${pkgs[@]}"
+  else
+    warn "No apt packages left to install"
+  fi
 
   # Ubuntu fd/bat binary names
+  mkdir -p "$HOME/.local/bin"
   if command_exists fdfind && ! command_exists fd; then
-    mkdir -p "$HOME/.local/bin"
     ln -sfn "$(command -v fdfind)" "$HOME/.local/bin/fd"
     ok "Linked fdfind -> ~/.local/bin/fd"
   fi
   if command_exists batcat && ! command_exists bat; then
-    mkdir -p "$HOME/.local/bin"
     ln -sfn "$(command -v batcat)" "$HOME/.local/bin/bat"
     ok "Linked batcat -> ~/.local/bin/bat"
   fi
 
+  # git-lfs (optional but listed)
+  if command_exists git-lfs; then
+    git lfs install --skip-repo >/dev/null 2>&1 || true
+    ok "git-lfs hooks installed"
+  fi
+
   if command_exists docker; then
-    sudo usermod -aG docker "$USER" 2>/dev/null || true
+    run_root usermod -aG docker "$USER" 2>/dev/null || true
+    # Prefer enabling the daemon on desktop/server Ubuntu
+    if command_exists systemctl; then
+      run_root systemctl enable --now docker 2>/dev/null || true
+    fi
     warn "Log out/in for docker group membership to apply"
   fi
   ok "Ubuntu packages installed"
@@ -255,12 +291,12 @@ install_packages_ubuntu() {
 install_packages_arch() {
   local pkgs=()
   read_pkg_list "$DOTFILES_ROOT/packages/pacman.txt" pkgs
-  step "Installing pacman packages (${#pkgs[@]}) — sudo required"
-  sudo pacman -Syu --needed --noconfirm "${pkgs[@]}"
+  step "Installing pacman packages (${#pkgs[@]}) — root/sudo required"
+  run_root pacman -Syu --needed --noconfirm "${pkgs[@]}"
 
   if command_exists docker; then
-    sudo systemctl enable --now docker 2>/dev/null || true
-    sudo usermod -aG docker "$USER" 2>/dev/null || true
+    run_root systemctl enable --now docker 2>/dev/null || true
+    run_root usermod -aG docker "$USER" 2>/dev/null || true
     warn "Log out/in for docker group membership to apply"
   fi
 
@@ -299,6 +335,7 @@ link_core() {
   link_file "$DOTFILES_ROOT/config/npm" "$HOME/.config/npm"
   link_file "$DOTFILES_ROOT/config/wget" "$HOME/.config/wget"
   link_file "$DOTFILES_ROOT/config/gh" "$HOME/.config/gh"
+  link_file "$DOTFILES_ROOT/config/starship.toml" "$HOME/.config/starship.toml"
 }
 
 link_shell() {
@@ -359,9 +396,18 @@ setup_shell() {
   fi
   if [[ "$ASSUME_YES" -eq 1 ]] || confirm "Set zsh as default login shell?"; then
     if ! grep -qxF "$zsh_path" /etc/shells 2>/dev/null; then
-      echo "$zsh_path" | sudo tee -a /etc/shells >/dev/null
+      echo "$zsh_path" | run_root tee -a /etc/shells >/dev/null
     fi
-    chsh -s "$zsh_path"
+    if [[ "$(id -u)" -eq 0 ]]; then
+      # chsh as root against $USER when HOME belongs to a normal account
+      if [[ -n "${USER:-}" && "$USER" != "root" ]] && id "$USER" >/dev/null 2>&1; then
+        run_root chsh -s "$zsh_path" "$USER" || true
+      else
+        warn "Running as root — skip chsh (set login shell for your user manually)"
+      fi
+    else
+      chsh -s "$zsh_path"
+    fi
     ok "Login shell set to $zsh_path (re-login to apply)"
   fi
 }
@@ -385,18 +431,35 @@ ensure_omz_plugins() {
 
   ensure_git_plugin zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions
   ensure_git_plugin zsh-completions https://github.com/zsh-users/zsh-completions
+  ensure_git_plugin zsh-syntax-highlighting https://github.com/zsh-users/zsh-syntax-highlighting
   # history-substring-search is bundled with oh-my-zsh (plugins/history-substring-search)
 }
 
 install_omz_optional() {
-  if [[ ! -d "$HOME/.config/oh-my-zsh" ]]; then
-    if [[ "$ASSUME_YES" -eq 1 ]] || confirm "Install oh-my-zsh into ~/.config/oh-my-zsh?"; then
-      info "Installing oh-my-zsh..."
-      RUNZSH=no CHSH=no KEEP_ZSHRC=yes ZSH="$HOME/.config/oh-my-zsh" \
-        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+  # Treat missing oh-my-zsh.sh as broken (empty dir with only custom/ plugins)
+  if [[ ! -f "$HOME/.config/oh-my-zsh/oh-my-zsh.sh" ]]; then
+    if [[ -d "$HOME/.config/oh-my-zsh" ]]; then
+      warn "oh-my-zsh looks broken (missing oh-my-zsh.sh) — repairing"
+      local custom_bak=""
+      if [[ -d "$HOME/.config/oh-my-zsh/custom" ]]; then
+        custom_bak="$(mktemp -d)"
+        cp -a "$HOME/.config/oh-my-zsh/custom/." "$custom_bak/" 2>/dev/null || true
+      fi
+      rm -rf "$HOME/.config/oh-my-zsh"
+      info "Cloning oh-my-zsh into ~/.config/oh-my-zsh ..."
+      git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git "$HOME/.config/oh-my-zsh"
+      if [[ -n "$custom_bak" ]]; then
+        mkdir -p "$HOME/.config/oh-my-zsh/custom"
+        cp -a "$custom_bak/." "$HOME/.config/oh-my-zsh/custom/" 2>/dev/null || true
+        rm -rf "$custom_bak"
+      fi
+      ok "oh-my-zsh repaired"
+    elif [[ "$ASSUME_YES" -eq 1 ]] || confirm "Install oh-my-zsh into ~/.config/oh-my-zsh?"; then
+      info "Cloning oh-my-zsh..."
+      git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git "$HOME/.config/oh-my-zsh"
       ok "oh-my-zsh installed"
     else
-      warn "Skipping oh-my-zsh install"
+      warn "Skipping oh-my-zsh install (geek prompt still works)"
       return
     fi
   else
@@ -424,6 +487,7 @@ do_unlink() {
     "$HOME/.config/npm"
     "$HOME/.config/wget"
     "$HOME/.config/gh"
+    "$HOME/.config/starship.toml"
   )
   local t
   for t in "${targets[@]}"; do
@@ -446,12 +510,15 @@ do_unlink() {
 print_banner() {
   cat <<EOF
 
-${C_CYAN}${C_BOLD}┌──────────────────────────────────────────────┐
-│  Dotfiles · macOS / Ubuntu / Arch            │
-│  Clean portable developer setup              │
-└──────────────────────────────────────────────┘${C_RESET}
-
+${C_CYAN}${C_BOLD}
+    ╔══════════════════════════════════════════════╗
+    ║   ▓▓▓  DOTFILES  ·  DEVOPS COCKPIT  ▓▓▓      ║
+    ║   macOS  ·  Ubuntu  ·  Arch                  ║
+    ║   shell · git · tmux · bins · packages       ║
+    ╚══════════════════════════════════════════════╝
+${C_RESET}
   ${C_DIM}repo${C_RESET}  $DOTFILES_ROOT
+  ${C_DIM}host${C_RESET}  $(uname -sr 2>/dev/null || echo unknown)
 EOF
 }
 

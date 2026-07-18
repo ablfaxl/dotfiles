@@ -88,3 +88,15 @@ ensure_dir() {
 command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
+
+# Prefer sudo when available and not already root (containers / recovery shells).
+run_root() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    "$@"
+  elif command_exists sudo; then
+    sudo "$@"
+  else
+    err "Need root to run: $*"
+    return 1
+  fi
+}

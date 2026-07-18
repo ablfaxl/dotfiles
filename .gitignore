@@ -35,3 +35,6 @@ config/tmux/plugins/
 *.log
 .cache/
 **/node_modules/
+
+# Unrelated local projects (not part of the portable dotfiles)
+projects/

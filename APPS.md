@@ -29,9 +29,11 @@ Assumptions used after you said **go on**:
 | 1 | **Alacritty** | Same terminal experience as macOS |
 | 2 | **Neovim** | Cross-platform editor default |
 | 3 | **tmux** | Session manager |
-| 4 | **Git toolkit** (`git`, `gh`, optional `git-delta` via cargo/brew) | Core VCS + GitHub |
-| 5 | **Search suite** (`fzf`, `fd-find`, `ripgrep`, `bat`, `eza`) | Same habits as macOS |
+| 4 | **Git toolkit** (`git`, `gh`, `git-delta`, `git-lfs`) | Diffs via delta + GitHub CLI |
+| 5 | **Search suite** (`fzf`, `fd-find`, `ripgrep`, `bat`, `eza`, `zoxide`) | Same habits as macOS + smarter `cd` |
 | 6 | **Docker Engine** + Compose plugin | Standard Linux container stack |
+
+Geek extras on Ubuntu apt: `btop`, `duf`, `ncdu`, `shellcheck`, `httpie`, `tldr`, JetBrains Mono, clipboard helpers.
 
 ### Arch
 
@@ -76,10 +78,17 @@ brew install --cask $(grep -vE '^\s*#|^\s*$' packages/brew-casks.txt | tr '\n' '
 sudo apt-get update
 sudo apt-get install -y $(grep -vE '^\s*#|^\s*$' packages/apt.txt | tr '\n' ' ')
 
-# Optional: Docker (official convenience script or apt docker.io)
-sudo apt-get install -y docker.io docker-compose-v2
+# Or via this repo (after configs are linked):
+make ubuntu-packages
+
+# Optional: add your user to the docker group (already done by installer when possible)
 sudo usermod -aG docker "$USER"
 ```
+
+Ubuntu notes:
+- `fd` / `bat` may appear as `fdfind` / `batcat` — the installer links short names into `~/.local/bin`
+- `git-delta` provides the `delta` binary used by git paging
+- Install **JetBrains Mono** (apt) or a Nerd Font for eza/Alacritty icons
 
 ### Arch (pacman)
 

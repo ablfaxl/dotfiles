@@ -54,10 +54,20 @@ check_cmd bat batcat
 check_cmd eza
 check_cmd jq
 
+step "Geek extras"
+check_optional btop
+check_optional zoxide
+check_optional duf
+check_optional shellcheck
+check_optional ncdu
+check_optional httpie
+check_optional tldr
+
 step "Git extras"
 check_optional gh
 check_optional lazygit
 check_optional delta
+check_optional git-lfs
 
 step "Terminal / containers"
 check_optional alacritty

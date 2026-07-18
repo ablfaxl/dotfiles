@@ -1,0 +1,58 @@
+# Starship config — optional; used when `starship` is on PATH
+# Install: curl -sS https://starship.rs/install.sh | sh -s -- -y -b ~/.local/bin
+
+"$schema" = "https://starship.rs/config-schema.json"
+
+format = """
+$username$hostname$directory$git_branch$git_status$cmd_duration
+$character"""
+
+add_newline = true
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+vicmd_symbol = "[❮](bold yellow)"
+
+[username]
+style_user = "bold magenta"
+style_root = "bold red"
+format = "[$user]($style)"
+show_always = true
+
+[hostname]
+ssh_only = false
+format = "[@$hostname](bold cyan) "
+ssh_symbol = "📡 "
+
+[directory]
+style = "bold blue"
+truncation_length = 3
+truncate_to_repo = true
+format = "[$path]($style)[$read_only]($read_only_style) "
+
+[git_branch]
+symbol = " "
+style = "bold yellow"
+format = "[git:](bold yellow)[\\($branch\\)]($style) "
+
+[git_status]
+style = "bold red"
+format = "([$all_status$ahead_behind]($style) )"
+conflicted = "⇕"
+ahead = "⇡"
+behind = "⇣"
+diverged = "⇕"
+untracked = "?"
+stashed = "≡"
+modified = "*"
+staged = "+"
+renamed = "»"
+deleted = "✘"
+
+[cmd_duration]
+min_time = 2_000
+format = "[took $duration](bold bright-black) "
+
+[package]
+disabled = true

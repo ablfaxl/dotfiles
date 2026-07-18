@@ -74,10 +74,11 @@
 [core]
   editor = nvim
   whitespace = cr-at-eol
-  pager = delta
+  # delta when present (Ubuntu: apt install git-delta); otherwise less
+  pager = "sh -c 'command -v delta >/dev/null && exec delta \"$@\" || exec less -FRX \"$@\"' --"
   excludesfile = ~/.config/git/ignore
 [interactive]
-  diffFilter = delta --color-only --features=interactive
+  diffFilter = "sh -c 'command -v delta >/dev/null && exec delta --color-only --features=interactive \"$@\" || exec cat \"$@\"' --"
 [delta]
   navigate = true
   side-by-side = true

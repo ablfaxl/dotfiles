@@ -9,9 +9,16 @@ export SUDO_EDITOR="$EDITOR"
 export TERM="${TERM:-xterm-256color}"
 export TERMINAL="${TERMINAL:-alacritty}"
 
-# ── Locale ──────────────────────────────────────────────────────────
-export LC_ALL="${LC_ALL:-en_US.UTF-8}"
-export LANG="${LANG:-en_US.UTF-8}"
+# ── Locale (prefer en_US.UTF-8; fall back to C.UTF-8 on minimal Ubuntu) ──
+if [ -z "${LC_ALL:-}" ] || [ -z "${LANG:-}" ]; then
+  if locale -a 2>/dev/null | grep -qiE '^en_US\.(utf8|UTF-8)$'; then
+    export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+    export LANG="${LANG:-en_US.UTF-8}"
+  else
+    export LC_ALL="${LC_ALL:-C.UTF-8}"
+    export LANG="${LANG:-C.UTF-8}"
+  fi
+fi
 
 # ── XDG base dirs ───────────────────────────────────────────────────
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"

@@ -1,5 +1,5 @@
 # Core CLI — Ubuntu / Debian (apt)
-# Package names differ slightly from Homebrew (e.g. fd-find, golang-github-cli)
+# Names differ from Homebrew (fd-find, bat → batcat, git-delta → delta)
 
 # shell & search
 zsh
@@ -10,19 +10,34 @@ bat
 eza
 tree
 jq
+btop
 htop
 wget
 curl
 gnupg
 unzip
 build-essential
+shellcheck
+ncdu
+duf
+zoxide
+httpie
+tldr
 
-# editors / mux
+# editors / mux / terminal
 neovim
 tmux
+alacritty
+fonts-jetbrains-mono
+
+# clipboard (Wayland + X11) — used by aliasrc cpwd / helpers
+xclip
+wl-clipboard
 
 # git toolkit
 git
+git-delta
+git-lfs
 gh
 
 # containers

@@ -30,7 +30,9 @@ See the full app plan, install commands, and validation in **[APPS.md](./APPS.md
 ./install.sh --os mac --yes --packages --modules core,shell,git,tmux,alacritty,bins
 
 # Ubuntu
-./install.sh --os ubuntu --yes --packages --modules core,shell,git,tmux,bins
+./install.sh --os ubuntu --yes --packages --modules core,shell,git,tmux,alacritty,bins
+# packages only (sudo): make ubuntu-packages
+
 
 # Arch
 ./install.sh --os arch --yes --packages --modules core,shell,git,tmux,alacritty,bins
@@ -70,7 +72,7 @@ exec zsh -l
 
 | Area          | Contents                                                             |
 | ------------- | -------------------------------------------------------------------- |
-| **Shell**     | XDG-clean `env`, zsh + oh-my-zsh plugins, rich `aliasrc`             |
+| **Shell**     | XDG-clean `env`, zsh + oh-my-zsh plugins, **geek prompt** (or Starship) |
 | **Git**       | aliases, delta pager, sensible defaults — identity in `config.local` |
 | **Tmux**      | prefix `Ctrl-a`, vim panes, TPM plugins                              |
 | **Alacritty** | modular theme (Mac / Linux)                                          |
