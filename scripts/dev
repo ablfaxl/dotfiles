@@ -1,0 +1,186 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v fzf >/dev/null 2>&1; then
+  cat <<'EOF'
+Developer Cheatsheet
+
+ZSH & Terminal
+  reload      -> reload kardan zsh
+  ff          -> namayesh dashboard system
+  dev         -> baz kardan in cheatsheet
+
+Files & Search
+  ll          -> list file ha ba joziyat
+  la          -> list file ha ba hidden ha
+  cat file    -> namayesh file ba bat
+  rg text     -> search kardan dakhel file ha
+  fd name     -> peyda kardan file/folder
+
+Git
+  gs          -> git status
+  ga          -> git add
+  gc          -> git commit
+  gp          -> git push
+  gpl         -> git pull
+  gl          -> git log
+  lg          -> baz kardan lazygit
+
+Navigation
+  z project   -> raftan be project ba zoxide
+  c           -> entekhab project
+EOF
+  exit 0
+fi
+
+show_section() {
+  case "$1" in
+    "ZSH & Terminal")
+      cat <<'EOF'
+reload      -> reload kardan zsh
+exec zsh    -> restart kardan shell
+ff          -> namayesh dashboard system
+dev         -> baz kardan cheatsheet
+which cmd   -> peyda kardan masir command
+path        -> didan PATH khat be khat
+EOF
+      ;;
+    "Files & Search")
+      cat <<'EOF'
+ll          -> list file ha ba joziyat
+la          -> list file ha ba hidden ha
+cat file    -> namayesh file ba bat
+fd name     -> peyda kardan file/folder
+rg text     -> search kardan dakhel file ha
+fzf         -> entekhab fuzzy
+duf         -> vaziyat disk ha
+dust        -> hajm folder ha
+EOF
+      ;;
+    "Git")
+      cat <<'EOF'
+gs          -> git status
+ga file     -> add kardan file
+gaa         -> add kardan hame file ha
+gc          -> commit kardan
+gcm msg     -> commit ba message
+gp          -> push kardan
+gpl         -> pull kardan
+gl          -> log kotah
+glog        -> log graph
+gd          -> diff didan
+gds         -> diff staged
+lg          -> baz kardan lazygit
+EOF
+      ;;
+    "GitHub")
+      cat <<'EOF'
+gh auth status     -> check login github
+gh auth login      -> login kardan github
+gh repo clone      -> clone repo
+gh pr list         -> list pull request ha
+gh pr checkout     -> checkout pull request
+EOF
+      ;;
+    "tmux")
+      cat <<'EOF'
+tmux                -> start tmux
+tmux a              -> attach be session
+devtmux name        -> session project
+C-a |               -> split amoodi
+C-a -               -> split ofoghi
+C-a h/j/k/l         -> raftan beyn pane ha
+C-a r               -> reload tmux config
+EOF
+      ;;
+    "Node / pnpm")
+      cat <<'EOF'
+node -v       -> version node
+pnpm -v       -> version pnpm
+pi            -> pnpm install
+pa pkg        -> add package
+pad pkg       -> add dev dependency
+pr dev        -> run script
+px pkg        -> pnpm dlx
+EOF
+      ;;
+    "Python")
+      cat <<'EOF'
+python --version    -> version python
+uv init             -> sakhte project python
+uv add pkg          -> ezafe kardan package
+uv run python       -> run kardan python
+uvx tool            -> run kardan tool
+EOF
+      ;;
+    "Docker")
+      cat <<'EOF'
+docker ps       -> container ha
+dc up           -> docker compose up
+dc down         -> docker compose down
+lazydocker      -> dashboard docker
+orbctl list     -> list orbstack machine ha
+EOF
+      ;;
+    "PostgreSQL")
+      cat <<'EOF'
+psql -h host -U user -d db   -> vasl shodan be postgres
+createdb name                -> sakhte database
+dropdb name                  -> hazf database
+EOF
+      ;;
+    "Neovim")
+      cat <<'EOF'
+nvim .       -> baz kardan project
+Space ff     -> search file
+Space fs     -> search text
+Space ee     -> file tree
+Space lg     -> lazygit dakhel nvim
+EOF
+      ;;
+    "macOS")
+      cat <<'EOF'
+open .             -> baz kardan finder
+pbcopy             -> copy be clipboard
+pbpaste            -> paste az clipboard
+softwareupdate -l  -> check update macOS
+EOF
+      ;;
+    "Project Workflow")
+      cat <<'EOF'
+c             -> entekhab project ba fzf
+z name        -> raftan be project ba zoxide
+devtmux name  -> tmux session baraye project
+lg            -> git UI
+EOF
+      ;;
+    "All Commands")
+      for s in "ZSH & Terminal" "Files & Search" "Git" "GitHub" "tmux" "Node / pnpm" "Python" "Docker" "PostgreSQL" "Neovim" "macOS" "Project Workflow"; do
+        printf '\n%s\n' "$s"
+        show_section "$s"
+      done
+      ;;
+  esac
+}
+
+sections=(
+  "ZSH & Terminal"
+  "Files & Search"
+  "Git"
+  "GitHub"
+  "tmux"
+  "Node / pnpm"
+  "Python"
+  "Docker"
+  "PostgreSQL"
+  "Neovim"
+  "macOS"
+  "Project Workflow"
+  "All Commands"
+)
+
+choice="$(printf '%s\n' "${sections[@]}" | fzf --prompt="Developer Cheatsheet > " --height=60% --layout=reverse --border)"
+[[ -n "${choice:-}" ]] || exit 0
+clear
+printf 'Developer Cheatsheet - %s\n\n' "$choice"
+show_section "$choice"

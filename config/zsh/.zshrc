@@ -1,38 +1,12 @@
-# Zsh interactive config — portable Mac / Linux
-# Prompt: starship (if installed) → geek theme → oh-my-zsh theme
+# Zsh interactive config -- portable macOS / Linux
+# Minimal dependencies, maximum productivity.
 
 export LC_ALL="${LC_ALL:-en_US.UTF-8}"
 export LANG="${LANG:-en_US.UTF-8}"
-export ZSH="${ZSH:-$HOME/.config/oh-my-zsh}"
 export STARSHIP_CONFIG="${STARSHIP_CONFIG:-$HOME/.config/starship.toml}"
 
-CASE_SENSITIVE="false"
-HYPHEN_INSENSITIVE="false"
-# Only used when oh-my-zsh loads AND starship/geek prompt are unavailable
-ZSH_THEME="${ZSH_THEME:-robbyrussell}"
-DISABLE_AUTO_UPDATE="true"
-COMPLETION_WAITING_DOTS="true"
-HIST_STAMPS="yyyy-mm-dd"
 HISTSIZE=100000
 SAVEHIST=100000
-
-VI_MODE_SET_CURSOR=true
-VI_MODE_CURSOR_INSERT=2
-VI_MODE_CURSOR_NORMAL=6
-
-plugins=(
-  git
-  sudo
-  colored-man-pages
-  zsh-autosuggestions
-  zsh-completions
-  history-substring-search
-  vi-mode
-  docker
-  docker-compose
-  fzf
-  zsh-syntax-highlighting  # must be last
-)
 
 ## Options
 setopt nocheckjobs
@@ -49,37 +23,21 @@ zstyle ':completion:*' cache-path "${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompcach
 WORDCHARS=${WORDCHARS//\/[&.;]/}
 
 ## Keybindings
-bindkey -v
 bindkey '^H' backward-kill-word
-bindkey '^z' undo
 bindkey '^b' backward-word
-bindkey '^w' forward-word
-bindkey '^ ' autosuggest-accept
 
 fpath=("$HOME/.local/share/zsh/completions" $fpath)
 
-# ── oh-my-zsh (only if healthy) ─────────────────────────────────────
-_OMZ_OK=0
-if [[ -f "$ZSH/oh-my-zsh.sh" ]]; then
-  [[ ! -f "$ZSH/themes/${ZSH_THEME}.zsh-theme" && ! -f "$ZSH/custom/themes/${ZSH_THEME}.zsh-theme" ]] \
-    && ZSH_THEME="robbyrussell"
-  # Disable OMZ theme when we drive the prompt ourselves
-  if command -v starship >/dev/null 2>&1 || [[ -f "${ZDOTDIR:-$HOME/.config/zsh}/prompt-geek.zsh" ]]; then
-    ZSH_THEME=""
-  fi
-  source "$ZSH/oh-my-zsh.sh"
-  _OMZ_OK=1
-else
-  # Manual plugin load when OMZ is broken / missing
-  _plug="$HOME/.config/oh-my-zsh/custom/plugins"
-  [[ -f "$_plug/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] \
-    && source "$_plug/zsh-autosuggestions/zsh-autosuggestions.zsh"
-  [[ -f "$_plug/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] \
-    && source "$_plug/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
-  [[ -d "$_plug/zsh-completions/src" ]] \
-    && fpath=("$_plug/zsh-completions/src" $fpath)
-  unset _plug
-fi
+# Lightweight plugins from existing local Oh My Zsh plugin dirs.
+for _plug_base in "$HOME/.config/oh-my-zsh/custom/plugins" "$HOME/.oh-my-zsh/custom/plugins"; do
+  [[ -f "$_plug_base/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] \
+    && source "$_plug_base/zsh-autosuggestions/zsh-autosuggestions.zsh" && break
+done
+for _plug_base in "$HOME/.config/oh-my-zsh/custom/plugins" "$HOME/.oh-my-zsh/custom/plugins"; do
+  [[ -d "$_plug_base/zsh-completions/src" ]] \
+    && fpath=("$_plug_base/zsh-completions/src" $fpath) && break
+done
+unset _plug_base
 
 # fzf — Homebrew/new builds expose `fzf --zsh`; Ubuntu apt uses examples/
 if command -v fzf >/dev/null 2>&1; then
@@ -112,16 +70,13 @@ elif [[ -x "${XDG_DATA_HOME:-$HOME/.local/share}/fnm/fnm" ]]; then
   eval "$("${XDG_DATA_HOME:-$HOME/.local/share}/fnm/fnm" env --use-on-cd --shell zsh)"
 fi
 
+# mise — project runtime manager
+if command -v mise >/dev/null 2>&1; then
+  eval "$(mise activate zsh)"
+fi
+
 autoload -Uz compinit
 compinit -i -d "${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump-${ZSH_VERSION}"
-
-# history-substring-search bindings (after omz)
-if [[ -f "$ZSH/plugins/history-substring-search/history-substring-search.zsh" ]]; then
-  [[ $_OMZ_OK -eq 0 ]] && source "$ZSH/plugins/history-substring-search/history-substring-search.zsh"
-fi
-bindkey '^[[A' history-substring-search-up 2>/dev/null || true
-bindkey '^[[B' history-substring-search-down 2>/dev/null || true
-bindkey -M vicmd '^e' edit-command-line 2>/dev/null || true
 
 # Aliases
 unalias l 2>/dev/null || true
@@ -134,10 +89,15 @@ elif [[ -f "${ZDOTDIR:-$HOME/.config/zsh}/prompt-geek.zsh" ]]; then
   source "${ZDOTDIR:-$HOME/.config/zsh}/prompt-geek.zsh"
 fi
 
+# zsh-syntax-highlighting must be loaded after widgets are defined.
+for _plug_base in "$HOME/.config/oh-my-zsh/custom/plugins" "$HOME/.oh-my-zsh/custom/plugins"; do
+  [[ -f "$_plug_base/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] \
+    && source "$_plug_base/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" && break
+done
+unset _plug_base
+
 # Local overrides (machine-specific)
 [[ -f "${XDG_CONFIG_HOME}/zsh/local.zsh" ]] && . "${XDG_CONFIG_HOME}/zsh/local.zsh"
 
-unset _OMZ_OK
-
 # bun completions
-[ -s "/home/dev/.local/share/bun/_bun" ] && source "/home/dev/.local/share/bun/_bun"
+[[ -s "${BUN_INSTALL:-$HOME/.bun}/_bun" ]] && source "${BUN_INSTALL:-$HOME/.bun}/_bun"

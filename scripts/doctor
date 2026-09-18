@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+pass=0
+warn=0
+fail=0
+
+ok() { printf '✓ %s\n' "$1"; pass=$((pass + 1)); }
+maybe() { printf '⚠ %s\n' "$1"; warn=$((warn + 1)); }
+bad() { printf '✗ %s\n' "$1"; fail=$((fail + 1)); }
+
+check_cmd() {
+  local cmd="$1"
+  local label="${2:-$cmd}"
+  local optional="${3:-0}"
+  if command -v "$cmd" >/dev/null 2>&1; then
+    ok "$label installed"
+  elif [[ "$optional" == "1" ]]; then
+    maybe "$label optional/missing"
+  else
+    bad "$label missing"
+  fi
+}
+
+check_link() {
+  local path="$1"
+  if [[ -L "$path" ]]; then
+    ok "$path symlink"
+  elif [[ -e "$path" ]]; then
+    maybe "$path exists but is not symlink"
+  else
+    bad "$path missing"
+  fi
+}
+
+[[ "$(uname -s)" == "Darwin" ]] && ok "macOS $(sw_vers -productVersion)" || bad "not macOS"
+[[ "$(uname -m)" == "arm64" ]] && ok "Apple Silicon arm64" || maybe "non-arm64 architecture"
+
+check_cmd brew Homebrew
+check_cmd zsh ZSH
+check_cmd starship Starship
+check_cmd fzf fzf
+check_cmd zoxide zoxide
+check_cmd git Git
+check_cmd lazygit lazygit 1
+check_cmd tmux tmux
+check_cmd nvim Neovim
+check_cmd node Node 1
+check_cmd pnpm pnpm 1
+check_cmd python3 Python
+check_cmd uv uv 1
+check_cmd rustup Rustup 1
+check_cmd docker Docker 1
+check_cmd orbctl OrbStack 1
+check_cmd gh "GitHub CLI" 1
+check_cmd psql PostgreSQL 1
+check_cmd redis-cli Redis 1
+
+check_link "$HOME/.zshenv"
+check_link "$HOME/.zprofile"
+check_link "$HOME/.config/zsh"
+check_link "$HOME/.config/git"
+check_link "$HOME/.config/tmux"
+
+printf '\nPATH entries:\n'
+printf '%s\n' "$PATH" | tr ':' '\n' | sed 's/^/  /'
+
+printf '\n'
+if ((fail == 0)); then
+  printf 'Developer environment: READY\n'
+else
+  printf 'Developer environment: NEEDS ATTENTION\n'
+fi
+
+printf 'checks: %s ok, %s optional/warn, %s broken\n' "$pass" "$warn" "$fail"

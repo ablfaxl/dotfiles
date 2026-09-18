@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+roots=()
+for dir in "$HOME/project" "$HOME/Developer" "$HOME/Projects" "$HOME/Code" "$HOME/Workspace"; do
+  [[ -d "$dir" ]] && roots+=("$dir")
+done
+
+if ((${#roots[@]} == 0)); then
+  echo "No project roots found." >&2
+  exit 1
+fi
+
+if ! command -v fzf >/dev/null 2>&1; then
+  echo "c requires fzf." >&2
+  exit 127
+fi
+
+find_args=()
+for root in "${roots[@]}"; do
+  find_args+=("$root")
+done
+
+project="$(
+  find "${find_args[@]}" -mindepth 1 -maxdepth 2 -type d \
+    -name .git -prune -o \
+    -type d -print 2>/dev/null |
+  sed "s#^$HOME#~#" |
+  sort -u |
+  fzf --prompt="project > " --height=40% --layout=reverse --border
+)"
+
+[[ -n "${project:-}" ]] || exit 0
+project="${project/#\~/$HOME}"
+
+printf '%s\n' "$project"

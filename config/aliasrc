@@ -34,8 +34,7 @@ _open() {
 
 edit() { "${EDITOR:-nvim}" "$@"; }
 
-# typos → clear
-alias c='clear'
+# typos -> clear. Keep `c` free for the project selector.
 alias clwer='clear' cear='clear' cler='clear' clea='clear'
 alias clar='clear' clewar='clear' lear='clear' celra='clear'
 alias clera='clear' claer='clear' celar='clear' clare='clear'
@@ -92,7 +91,8 @@ alias dt='cd ~/Desktop 2>/dev/null || cd ~/desktop 2>/dev/null || true'
 # sysadmin helpers
 alias findstr='grep -rnw'
 alias path='echo -e ${PATH//:/\\n} | sort'
-alias reload='source "${XDG_CONFIG_HOME}/aliasrc"'
+alias reload='source "${ZDOTDIR:-$HOME/.config/zsh}/.zshrc"'
+alias ff='fastfetch'
 
 # config shortcuts
 alias zshrc='edit "${ZDOTDIR:-$HOME/.config/zsh}/.zshrc"'
@@ -108,6 +108,20 @@ alias lsa='ls -la'
 alias rd='rmdir'
 
 mk() { mkdir -p "$1" && cd "$1" || return; }
+
+c() {
+  local selected
+  if ! command -v fzf >/dev/null 2>&1; then
+    echo "c requires fzf" >&2
+    return 127
+  fi
+  selected="$(command c 2>/dev/null)" || return
+  [[ -n "$selected" ]] || return 0
+  cd "$selected" || return
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git status --short
+  fi
+}
 
 tmp() {
   local td
@@ -196,11 +210,10 @@ alias ba='bun add'
 alias br='bun run'
 alias bx='bunx'
 
-# Node version helpers (fnm)
-alias nls='fnm list 2>/dev/null || true'
-alias nuse='fnm use'
-alias ninstall='fnm install'
-alias nlts='fnm install --lts && fnm use lts-latest'
+# Runtime helpers (mise when available)
+alias mls='mise ls'
+alias muse='mise use'
+alias minstall='mise install'
 
 # Clean JS project junk
 nm_clean() {
@@ -221,6 +234,7 @@ alias drm='docker container prune'
 # git — high-signal subset
 alias clone='git clone'
 alias gs='git status -s'
+alias ga='git add'
 alias gsl='git stash list'
 alias gf='git fetch'
 alias gfp='git fetch --prune'
@@ -238,14 +252,17 @@ alias gswc='git switch -c'
 alias gco='git checkout'
 alias pull='git pull'
 alias push='git push'
+alias gp='git push'
+alias gpl='git pull'
 alias pushu='git push --set-upstream origin "$(git branch --show-current)"'
 alias gl='git log --oneline --decorate'
 alias glog='git log --graph --oneline --decorate --color'
+alias gd='git diff'
+alias gds='git diff --staged'
 alias gm='git merge'
 alias gma='git merge --abort'
 alias gr='git reset'
 alias grh='git reset HEAD'
-alias grhh='git reset HEAD --hard'
 alias grv='git remote -v'
 alias gro='git remote add origin'
 alias grba='git rebase --abort'
